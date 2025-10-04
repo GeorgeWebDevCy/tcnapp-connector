@@ -53,6 +53,10 @@ class LogPage {
             wp_die( esc_html__( 'Invalid request.', 'tcnapp-connector' ) );
         }
 
+        if ( ! RestrictedAccess::has_access( 'tcn-platform-logs' ) ) {
+            wp_die( esc_html__( 'Please unlock the Activity Log before performing this action.', 'tcnapp-connector' ) );
+        }
+
         $actor       = wp_get_current_user();
         $actor_label = ( $actor && $actor->ID ) ? $actor->user_login : __( 'Unknown user', 'tcnapp-connector' );
 
@@ -77,6 +81,10 @@ class LogPage {
     public function render_page(): void {
         if ( ! current_user_can( 'manage_options' ) ) {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'tcnapp-connector' ) );
+        }
+
+        if ( ! RestrictedAccess::require_access( 'tcn-platform-logs', __( 'Activity Log', 'tcnapp-connector' ) ) ) {
+            return;
         }
 
         $logs = Logger::get_logs();

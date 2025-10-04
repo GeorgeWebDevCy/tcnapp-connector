@@ -51,6 +51,10 @@ class ApiTesterPage {
             wp_die( esc_html__( 'You do not have permission to access this page.', 'tcnapp-connector' ) );
         }
 
+        if ( ! RestrictedAccess::require_access( 'tcn-platform-api-tester', __( 'API Tester', 'tcnapp-connector' ) ) ) {
+            return;
+        }
+
         $method        = 'GET';
         $endpoint      = '';
         $headers_input = '';
