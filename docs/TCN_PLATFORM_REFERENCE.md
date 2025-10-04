@@ -221,7 +221,7 @@ The tables below enumerate every method, its visibility, parameters, return valu
 | `rest_get_genealogy( WP_REST_Request $request )` | public | REST callback building genealogy tree with optional depth. | `$request` | array | Requires login. |
 | `rest_get_commissions( WP_REST_Request $request )` | public | REST callback returning commission summary + ledger. | `$request` | array | Requires login. |
 | `rest_require_login()` | public | Permission callback confirming authenticated user. | — | bool | — |
-| `rest_get_membership_plans( WP_REST_Request $request )` | public | Public REST callback returning plan details, currency, Stripe key, product IDs. | `$request` | array | — |
+| `rest_get_membership_plans( WP_REST_Request $request )` | public | Public REST callback returning plan details, currency, Stripe key, product IDs, and formatted pricing helpers. | `$request` | array | — |
 | `rest_create_stripe_intent( WP_REST_Request $request )` | public | Creates Stripe Payment Intent or returns `requires_payment=false` for free tiers. | `$request` | array or `WP_Error` | Validates plan, Stripe keys, amount. |
 | `rest_confirm_membership_upgrade( WP_REST_Request $request )` | public | Validates payment, updates membership, records commissions. | `$request` | array or `WP_Error` | Requires login. |
 | `get_membership_products()` | protected | Returns map of membership slugs to WooCommerce product IDs. | — | `array<string,int>` | Queries products with `_tcn_membership_level` meta. |
