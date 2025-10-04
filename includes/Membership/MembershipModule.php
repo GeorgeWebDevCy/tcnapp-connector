@@ -597,14 +597,11 @@ class MembershipModule {
             return;
         }
 
-        $levels          = Options::get_levels();
-        $default_levels  = Options::default_levels();
+        $levels         = Options::get_levels();
+        $default_levels = Options::default_levels();
 
-        foreach ( $levels as $key => $level ) {
-            $level_defaults = $default_levels[ $key ] ?? array(
-                'name' => is_string( $key ) ? ucwords( str_replace( '_', ' ', $key ) ) : __( 'Membership', 'tcnapp-connector' ),
-                'fee'  => 0,
-            );
+        foreach ( $default_levels as $key => $level_defaults ) {
+            $level = $levels[ $key ] ?? $level_defaults;
 
             if ( ! is_array( $level ) ) {
                 $level = $level_defaults;
