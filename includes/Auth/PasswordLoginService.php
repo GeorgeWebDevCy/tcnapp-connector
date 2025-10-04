@@ -127,6 +127,7 @@ class PasswordLoginService {
         $token = $this->issue_login_token( $user->ID );
 
         return array(
+            'success'     => true,
             'token'       => $token['token'],
             'expires_in'  => $token['expires_in'],
             'redirect'    => add_query_arg(
