@@ -61,7 +61,8 @@ class Options {
             );
 
             $level['slug']     = $slug;
-            $normalized[ $slug ] = wp_parse_args( $level, $base );
+            $normalized_level  = wp_parse_args( $level, $base );
+            $normalized[ $slug ] = self::normalize_level_amounts( $normalized_level );
         }
 
         $levels = array_replace( $defaults, $normalized );
@@ -161,22 +162,88 @@ class Options {
                 $price = $product->get_price( 'edit' );
             }
 
-            if ( '' === $price ) {
-                $price = 0;
-            }
-
-            if ( is_string( $price ) && function_exists( 'wc_clean' ) ) {
-                $price = wc_clean( $price );
-            }
-
-            if ( function_exists( 'wc_format_decimal' ) ) {
-                $price = wc_format_decimal( $price );
-            }
-
-            $levels[ $level_key ]['fee'] = (float) $price;
+            $levels[ $level_key ]['fee'] = self::parse_currency_amount( $price );
         }
 
         return $levels;
+    }
+
+    /**
+     * Normalize numeric fields on a membership level definition.
+     *
+     * @param array<string, mixed> $level
+     *
+     * @return array<string, mixed>
+     */
+    protected static function normalize_level_amounts( array $level ): array {
+        foreach ( array( 'fee', 'commission_direct', 'commission_passive' ) as $key ) {
+            if ( isset( $level[ $key ] ) ) {
+                $level[ $key ] = self::parse_currency_amount( $level[ $key ] );
+            }
+        }
+
+        if ( isset( $level['commission_direct_overrides'] ) && is_array( $level['commission_direct_overrides'] ) ) {
+            foreach ( $level['commission_direct_overrides'] as $override_key => $value ) {
+                $level['commission_direct_overrides'][ $override_key ] = self::parse_currency_amount( $value );
+            }
+        }
+
+        return $level;
+    }
+
+    /**
+     * Convert currency strings (with locale separators) into floats.
+     *
+     * @param mixed $value
+     */
+    protected static function parse_currency_amount( $value ): float {
+        if ( is_numeric( $value ) ) {
+            return (float) $value;
+        }
+
+        if ( is_string( $value ) ) {
+            if ( function_exists( 'wc_format_decimal' ) ) {
+                $normalized = wc_format_decimal( $value, false, false );
+                if ( is_numeric( $normalized ) ) {
+                    return (float) $normalized;
+                }
+            }
+
+            $value = html_entity_decode( $value, ENT_QUOTES, 'UTF-8' );
+
+            if ( function_exists( 'wc_clean' ) ) {
+                $value = wc_clean( $value );
+            }
+
+            $value = preg_replace( '/[^0-9\.,-]/u', '', (string) $value );
+
+            if ( '' === $value ) {
+                return 0.0;
+            }
+
+            $thousand = function_exists( 'wc_get_price_thousand_separator' ) ? wc_get_price_thousand_separator() : ',';
+            $decimal  = function_exists( 'wc_get_price_decimal_separator' ) ? wc_get_price_decimal_separator() : '.';
+
+            if ( '' !== $thousand ) {
+                $value = str_replace( $thousand, '', $value );
+            }
+
+            if ( '.' !== $decimal && false !== strpos( $value, $decimal ) ) {
+                $value = str_replace( $decimal, '.', $value );
+            }
+
+            $parts = explode( '.', $value );
+            if ( count( $parts ) > 2 ) {
+                $last  = array_pop( $parts );
+                $value = implode( '', $parts ) . '.' . $last;
+            }
+
+            if ( is_numeric( $value ) ) {
+                return (float) $value;
+            }
+        }
+
+        return 0.0;
     }
 
     /**
