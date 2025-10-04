@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.19
+- Allow WooCommerce REST API consumer keys to authenticate the `gn/v1` customer and order endpoints for secure headless integrations.
+
 ### 0.3.18
 - Add a WooCommerce order creation endpoint to the REST service so external systems can register purchases directly from the API.
 

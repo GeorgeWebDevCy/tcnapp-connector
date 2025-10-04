@@ -116,6 +116,20 @@ class WooCommerceEndpoints {
             return true;
         }
 
+        $authenticated_user = $this->authenticate_with_consumer_keys( $request );
+
+        if ( $authenticated_user > 0 ) {
+            if ( user_can( $authenticated_user, 'manage_woocommerce' ) ) {
+                return true;
+            }
+
+            return new WP_Error(
+                'tcn_rest_forbidden',
+                __( 'The API key provided does not have permission to manage WooCommerce customers.', 'tcnapp-connector' ),
+                array( 'status' => rest_authorization_required_code() )
+            );
+        }
+
         if ( is_user_logged_in() ) {
             return new WP_Error(
                 'tcn_rest_forbidden',
@@ -129,6 +143,135 @@ class WooCommerceEndpoints {
             __( 'Authentication is required to access this resource.', 'tcnapp-connector' ),
             array( 'status' => rest_authorization_required_code() )
         );
+    }
+
+    /**
+     * Attempt to authenticate the request using WooCommerce REST API keys.
+     */
+    protected function authenticate_with_consumer_keys( WP_REST_Request $request ): int {
+        if ( ! function_exists( 'wc_api_hash' ) ) {
+            return 0;
+        }
+
+        global $wpdb;
+
+        if ( ! $wpdb instanceof \wpdb ) {
+            return 0;
+        }
+
+        $credentials = $this->extract_consumer_credentials( $request );
+
+        if ( empty( $credentials['key'] ) || empty( $credentials['secret'] ) ) {
+            return 0;
+        }
+
+        $table = $wpdb->prefix . 'woocommerce_api_keys';
+        $hash  = wc_api_hash( $credentials['key'] );
+
+        $key_data = $wpdb->get_row(
+            $wpdb->prepare(
+                "SELECT key_id, user_id, permissions, consumer_secret FROM {$table} WHERE consumer_key = %s",
+                $hash
+            )
+        );
+
+        if ( empty( $key_data ) ) {
+            return 0;
+        }
+
+        $permissions = isset( $key_data->permissions ) ? strtolower( (string) $key_data->permissions ) : '';
+
+        if ( ! in_array( $permissions, array( 'write', 'read_write' ), true ) ) {
+            return 0;
+        }
+
+        $secret = isset( $key_data->consumer_secret ) ? (string) $key_data->consumer_secret : '';
+
+        if ( ! $this->safe_hash_equals( $secret, $credentials['secret'] ) ) {
+            return 0;
+        }
+
+        $user_id = isset( $key_data->user_id ) ? (int) $key_data->user_id : 0;
+
+        if ( $user_id <= 0 || ! get_user_by( 'id', $user_id ) ) {
+            return 0;
+        }
+
+        wp_set_current_user( $user_id );
+
+        if ( isset( $key_data->key_id ) ) {
+            $wpdb->update(
+                $table,
+                array( 'last_access' => current_time( 'mysql', true ) ),
+                array( 'key_id' => (int) $key_data->key_id ),
+                array( '%s' ),
+                array( '%d' )
+            );
+        }
+
+        return $user_id;
+    }
+
+    /**
+     * Extract consumer key credentials from a REST request.
+     */
+    protected function extract_consumer_credentials( WP_REST_Request $request ): array {
+        $key    = '';
+        $secret = '';
+
+        $header = $request->get_header( 'authorization' );
+
+        if ( is_string( $header ) && stripos( $header, 'basic ' ) === 0 ) {
+            $decoded = base64_decode( substr( $header, 6 ), true );
+
+            if ( false !== $decoded ) {
+                $parts  = explode( ':', $decoded, 2 );
+                $key    = isset( $parts[0] ) ? trim( $parts[0] ) : '';
+                $secret = isset( $parts[1] ) ? trim( $parts[1] ) : '';
+            }
+        }
+
+        if ( '' === $key && '' === $secret ) {
+            $param_key    = $request->get_param( 'consumer_key' );
+            $param_secret = $request->get_param( 'consumer_secret' );
+
+            if ( is_string( $param_key ) ) {
+                $key = trim( wp_unslash( $param_key ) );
+            }
+
+            if ( is_string( $param_secret ) ) {
+                $secret = trim( wp_unslash( $param_secret ) );
+            }
+        }
+
+        return array(
+            'key'    => $key,
+            'secret' => $secret,
+        );
+    }
+
+    /**
+     * Compare two strings in a time-safe manner where possible.
+     */
+    protected function safe_hash_equals( string $expected, string $actual ): bool {
+        if ( function_exists( 'hash_equals' ) ) {
+            return hash_equals( $expected, $actual );
+        }
+
+        $expected_length = strlen( $expected );
+        $actual_length   = strlen( $actual );
+
+        if ( $expected_length !== $actual_length ) {
+            return false;
+        }
+
+        $result = 0;
+
+        for ( $i = 0; $i < $expected_length; $i++ ) {
+            $result |= ord( $expected[ $i ] ) ^ ord( $actual[ $i ] );
+        }
+
+        return 0 === $result;
     }
 
     /**
