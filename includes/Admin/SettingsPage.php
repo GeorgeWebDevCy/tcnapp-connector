@@ -48,6 +48,12 @@ class SettingsPage {
 
         $this->modules->sync( $modules );
 
+        $level_settings = isset( $_POST['membership_levels'] ) && is_array( $_POST['membership_levels'] )
+            ? wp_unslash( $_POST['membership_levels'] )
+            : array();
+
+        $this->persist_membership_levels( $level_settings );
+
         $login = array(
             'allowed_origin'    => isset( $_POST['allowed_origin'] ) ? esc_url_raw( wp_unslash( $_POST['allowed_origin'] ) ) : '',
             'allow_dev_http'    => ! empty( $_POST['allow_dev_http'] ),
@@ -260,6 +266,43 @@ class SettingsPage {
                     </tbody>
                 </table>
 
+                <h2><?php esc_html_e( 'Membership Commissions', 'tcnapp-connector' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Adjust the direct and passive commission amounts for each tier. These settings drive the payouts recorded when members recruit their network.', 'tcnapp-connector' ); ?></p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <?php foreach ( $levels as $level ) :
+                            if ( empty( $level['slug'] ) ) {
+                                continue;
+                            }
+
+                            $slug        = sanitize_key( (string) $level['slug'] );
+                            $level_name  = isset( $level['name'] ) ? (string) $level['name'] : $slug;
+                            $direct_id   = 'membership_levels_' . $slug . '_direct';
+                            $passive_id  = 'membership_levels_' . $slug . '_passive';
+                            $direct_val  = isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0;
+                            $passive_val = isset( $level['commission_passive'] ) ? (float) $level['commission_passive'] : 0.0;
+                        ?>
+                        <tr>
+                            <th scope="row">
+                                <span class="tcn-level-label"><?php echo esc_html( $level_name ); ?></span>
+                            </th>
+                            <td>
+                                <fieldset>
+                                    <label for="<?php echo esc_attr( $direct_id ); ?>" class="tcn-level-field">
+                                        <?php esc_html_e( 'Direct commission', 'tcnapp-connector' ); ?>
+                                        <input type="number" min="0" step="0.01" id="<?php echo esc_attr( $direct_id ); ?>" name="membership_levels[<?php echo esc_attr( $slug ); ?>][commission_direct]" value="<?php echo esc_attr( $direct_val ); ?>" class="small-text" />
+                                    </label>
+                                    <label for="<?php echo esc_attr( $passive_id ); ?>" class="tcn-level-field">
+                                        <?php esc_html_e( 'Passive commission', 'tcnapp-connector' ); ?>
+                                        <input type="number" min="0" step="0.01" id="<?php echo esc_attr( $passive_id ); ?>" name="membership_levels[<?php echo esc_attr( $slug ); ?>][commission_passive]" value="<?php echo esc_attr( $passive_val ); ?>" class="small-text" />
+                                    </label>
+                                </fieldset>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+
                 <?php submit_button(); ?>
             </form>
 
@@ -318,6 +361,106 @@ class SettingsPage {
         }
 
         return sprintf( '%s %.2f', $currency, (float) $amount );
+    }
+
+    protected function persist_membership_levels( array $submitted ): void {
+        $stored_levels = get_option( Options::OPTION_LEVELS, array() );
+        if ( ! is_array( $stored_levels ) ) {
+            $stored_levels = array();
+        }
+
+        $defaults = Options::default_levels();
+        $updated  = array();
+
+        foreach ( $defaults as $slug => $default_level ) {
+            $slug = sanitize_key( (string) $slug );
+
+            if ( '' === $slug ) {
+                continue;
+            }
+
+            $existing = $stored_levels[ $slug ] ?? array();
+
+            if ( is_string( $existing ) ) {
+                $existing = array( 'name' => $existing );
+            } elseif ( ! is_array( $existing ) ) {
+                $existing = array();
+            }
+
+            $existing = wp_parse_args( $existing, $default_level );
+
+            if ( isset( $submitted[ $slug ] ) && is_array( $submitted[ $slug ] ) ) {
+                $input = $submitted[ $slug ];
+
+                if ( array_key_exists( 'commission_direct', $input ) ) {
+                    $existing['commission_direct'] = $this->parse_amount( $input['commission_direct'] );
+                }
+
+                if ( array_key_exists( 'commission_passive', $input ) ) {
+                    $existing['commission_passive'] = $this->parse_amount( $input['commission_passive'] );
+                }
+            }
+
+            $existing['slug'] = $slug;
+            $updated[ $slug ] = $existing;
+        }
+
+        if ( ! empty( $updated ) ) {
+            Options::update_levels( $updated );
+        }
+    }
+
+    /**
+     * Normalize numeric input from the settings form.
+     *
+     * @param mixed $value
+     */
+    protected function parse_amount( $value ): float {
+        if ( is_numeric( $value ) ) {
+            return (float) $value;
+        }
+
+        if ( is_string( $value ) ) {
+            $value = sanitize_text_field( $value );
+
+            if ( function_exists( 'wc_format_decimal' ) ) {
+                $normalized = wc_format_decimal( $value, false, false );
+
+                if ( is_numeric( $normalized ) ) {
+                    return (float) $normalized;
+                }
+            }
+
+            $value = preg_replace( '/[^0-9\.,-]/u', '', (string) $value );
+
+            if ( '' === $value ) {
+                return 0.0;
+            }
+
+            $thousand = function_exists( 'wc_get_price_thousand_separator' ) ? wc_get_price_thousand_separator() : ',';
+            $decimal  = function_exists( 'wc_get_price_decimal_separator' ) ? wc_get_price_decimal_separator() : '.';
+
+            if ( '' !== $thousand ) {
+                $value = str_replace( $thousand, '', $value );
+            }
+
+            if ( '.' !== $decimal && false !== strpos( $value, $decimal ) ) {
+                $value = str_replace( $decimal, '.', $value );
+            }
+
+            $parts = explode( '.', $value );
+
+            if ( count( $parts ) > 2 ) {
+                $last  = array_pop( $parts );
+                $value = implode( '', $parts ) . '.' . $last;
+            }
+
+            if ( is_numeric( $value ) ) {
+                return (float) $value;
+            }
+        }
+
+        return 0.0;
     }
 
     /**
