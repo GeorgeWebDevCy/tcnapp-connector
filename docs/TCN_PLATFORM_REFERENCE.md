@@ -232,7 +232,7 @@ The tables below enumerate every method, its visibility, parameters, return valu
 | `assign_sponsor_from_cookie( int $user_id )` | public | Applies sponsor cookie to new registrations, updates metrics. | `$user_id` | void | Hooked to `user_register`. |
 | `ensure_customer_role( int $user_id )` | protected | Adds WooCommerce `customer` role, removes `subscriber` when redundant. | `$user_id` | void | — |
 | `maybe_create_welcome_order( int $user_id, WP_REST_Request $request )` | protected | Auto-creates completed WooCommerce order for Blue tier on API signup. | `$user_id`, `$request` | void | Stores order ID in user meta. |
-| `get_membership_product_id( string $level )` | protected | Resolves product ID for membership level, with slug fallback. | `$level` | int | Prefers mapping from `get_membership_products()`. |
+| `get_membership_product_id( string $level, ?array $products = null )` | protected | Resolves product ID for membership level, with slug fallback. | `$level`, optional product map | int | Prefers mapping from `get_membership_products()`, falls back to known slugs (`blue-membership`, `gold-membership`, etc.). |
 | `get_product_id_by_slug( string $slug )` | protected | Finds product by slug. | `$slug` | int | Returns 0 when not found. |
 | `ensure_sponsor_assignment( int $user_id )` | protected | Ensures user has sponsor via cookie/default setting, updates metrics. | `$user_id` | void | — |
 | `record_commissions( int $member_id, int $order_id, string $level_key )` | protected | Inserts direct and passive commission rows, updates recruit counts. | Member ID, order ID, level key. | void | Writes to custom table. |

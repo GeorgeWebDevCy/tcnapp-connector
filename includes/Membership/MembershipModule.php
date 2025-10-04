@@ -388,7 +388,7 @@ class MembershipModule {
                 'benefits'           => $benefits,
                 'commission_direct'  => isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0,
                 'commission_passive' => isset( $level['commission_passive'] ) ? (float) $level['commission_passive'] : 0.0,
-                'product_id'         => isset( $products[ $key ] ) ? (int) $products[ $key ] : 0,
+                'product_id'         => $this->get_membership_product_id( (string) $key, $products ),
             );
 
             $plan['requires_payment'] = $plan['fee'] > 0;
@@ -798,15 +798,30 @@ class MembershipModule {
     /**
      * Retrieve the WooCommerce product ID associated with a membership level.
      */
-    protected function get_membership_product_id( string $level ): int {
-        $products = $this->get_membership_products();
+    protected function get_membership_product_id( string $level, ?array $products = null ): int {
+        $level = sanitize_key( $level );
+
+        if ( '' === $level ) {
+            return 0;
+        }
+
+        if ( null === $products ) {
+            $products = $this->get_membership_products();
+        }
 
         if ( isset( $products[ $level ] ) ) {
             return (int) $products[ $level ];
         }
 
-        if ( 'blue' === $level ) {
-            $fallback = $this->get_product_id_by_slug( 'blue-membership' );
+        $fallback_slugs = array(
+            'blue'     => 'blue-membership',
+            'gold'     => 'gold-membership',
+            'platinum' => 'platinum-membership',
+            'black'    => 'black-membership',
+        );
+
+        if ( isset( $fallback_slugs[ $level ] ) ) {
+            $fallback = $this->get_product_id_by_slug( $fallback_slugs[ $level ] );
 
             if ( $fallback > 0 ) {
                 return $fallback;
