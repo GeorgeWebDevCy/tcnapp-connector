@@ -64,7 +64,12 @@ class Options {
             $normalized[ $slug ] = wp_parse_args( $level, $base );
         }
 
-        return array_replace( $defaults, $normalized );
+        $levels = array_replace( $defaults, $normalized );
+
+        // Only expose the official tiers even if legacy data introduces stray keys.
+        $levels = array_intersect_key( $levels, $defaults );
+
+        return self::apply_membership_product_fees( $levels );
     }
 
     public static function update_levels( array $levels ): void {
@@ -101,6 +106,69 @@ class Options {
 
     public static function update_login_settings( array $settings ): void {
         update_option( self::OPTION_LOGIN_SETTINGS, wp_parse_args( $settings, self::default_login_settings() ) );
+    }
+
+    /**
+     * Overlay membership fees from WooCommerce products so the admin summary
+     * reflects the current catalogue configuration.
+     *
+     * @param array<string, array<string, mixed>> $levels
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    protected static function apply_membership_product_fees( array $levels ): array {
+        if ( empty( $levels ) || ! function_exists( 'wc_get_products' ) ) {
+            return $levels;
+        }
+
+        $products = wc_get_products(
+            array(
+                'limit'      => -1,
+                'status'     => array( 'publish', 'pending', 'draft' ),
+                'meta_query' => array(
+                    array(
+                        'key'     => '_tcn_membership_level',
+                        'compare' => 'EXISTS',
+                    ),
+                ),
+            )
+        );
+
+        if ( empty( $products ) ) {
+            return $levels;
+        }
+
+        foreach ( $products as $product ) {
+            $level_key = $product->get_meta( '_tcn_membership_level' );
+
+            if ( ! is_string( $level_key ) ) {
+                continue;
+            }
+
+            $level_key = sanitize_key( $level_key );
+
+            if ( '' === $level_key || ! isset( $levels[ $level_key ] ) ) {
+                continue;
+            }
+
+            $price = $product->get_price( 'edit' );
+
+            if ( '' === $price ) {
+                $price = $product->get_regular_price( 'edit' );
+            }
+
+            if ( '' === $price ) {
+                $price = 0;
+            }
+
+            if ( function_exists( 'wc_format_decimal' ) ) {
+                $price = wc_format_decimal( $price );
+            }
+
+            $levels[ $level_key ]['fee'] = (float) $price;
+        }
+
+        return $levels;
     }
 
     /**
