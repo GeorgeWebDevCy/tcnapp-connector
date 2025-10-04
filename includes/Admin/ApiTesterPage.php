@@ -363,10 +363,19 @@ class ApiTesterPage {
      * @return array<int, array<string, string>>
      */
     protected function get_examples(): array {
-        $login_url     = home_url( '/wp-json/gn/v1/login' );
-        $register_url  = home_url( '/wp-json/gn/v1/register' );
-        $plans_url     = home_url( '/wp-json/gn/v1/memberships/plans' );
-        $customer_url  = home_url( '/wp-json/gn/v1/customers' );
+        $login_url        = home_url( '/wp-json/gn/v1/login' );
+        $register_url     = home_url( '/wp-json/gn/v1/register' );
+        $forgot_url       = home_url( '/wp-json/gn/v1/forgot-password' );
+        $reset_url        = home_url( '/wp-json/gn/v1/reset-password' );
+        $change_url       = home_url( '/wp-json/gn/v1/change-password' );
+        $plans_url        = home_url( '/wp-json/gn/v1/memberships/plans' );
+        $stripe_intent    = home_url( '/wp-json/gn/v1/memberships/stripe-intent' );
+        $confirm_upgrade  = home_url( '/wp-json/gn/v1/memberships/confirm' );
+        $member_url       = home_url( '/wp-json/tcn-mlm/v1/member' );
+        $genealogy_url    = home_url( '/wp-json/tcn-mlm/v1/genealogy' );
+        $commissions_url  = home_url( '/wp-json/tcn-mlm/v1/commissions' );
+        $customer_url     = home_url( '/wp-json/gn/v1/customers' );
+        $orders_url       = home_url( '/wp-json/gn/v1/orders' );
 
         return array(
             array(
@@ -418,6 +427,74 @@ class ApiTesterPage {
                 ) ?: '',
             ),
             array(
+                'method'      => 'POST',
+                'url'         => $forgot_url,
+                'description' => __( 'Trigger the password reset workflow.', 'tcnapp-connector' ),
+                'note'        => __( 'Optional flag returns a verification code for in-app flows.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode( array( 'Content-Type' => 'application/json' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'username'                 => 'demo@example.com',
+                        'return_verification_code' => true,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success'            => true,
+                        'verification_code'  => '123456',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $reset_url,
+                'description' => __( 'Complete a password reset using a verification code.', 'tcnapp-connector' ),
+                'note'        => __( 'Use the code returned from /forgot-password or a WordPress reset key.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode( array( 'Content-Type' => 'application/json' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'login'              => 'demo@example.com',
+                        'verification_code'  => '123456',
+                        'password'           => 'NewSecurePassword!1',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success' => true,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $change_url,
+                'description' => __( 'Change the logged-in user password.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires an authenticated session or X-WP-Nonce header.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type' => 'application/json',
+                        'X-WP-Nonce'   => 'paste-nonce-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'current_password' => 'secret-password',
+                        'password'         => 'NewSecurePassword!1',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success' => true,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
                 'method'      => 'GET',
                 'url'         => $plans_url,
                 'description' => __( 'Retrieve active membership plans exposed by the plugin.', 'tcnapp-connector' ),
@@ -426,14 +503,138 @@ class ApiTesterPage {
                 'body'        => '',
                 'response'    => wp_json_encode(
                     array(
+                        'currency'        => 'THB',
+                        'publishableKey'  => 'pk_test_xxx',
                         'plans' => array(
                             array(
                                 'id'          => 'blue',
                                 'name'        => 'Blue Membership',
-                                'price'       => '19.00',
-                                'description' => 'Entry level membership tier.',
+                                'fee'         => 0,
+                                'benefits'    => array( 'Basic customer account' ),
                             ),
                         ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $stripe_intent,
+                'description' => __( 'Create a Stripe payment intent for a paid upgrade.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires login and configured Stripe secret key.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type' => 'application/json',
+                        'X-WP-Nonce'   => 'paste-nonce-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'plan' => 'gold',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'id'            => 'pi_example',
+                        'client_secret' => 'pi_example_secret_123',
+                        'status'        => 'requires_confirmation',
+                        'metadata'      => array(
+                            'plan'    => 'gold',
+                            'user_id' => 123,
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $confirm_upgrade,
+                'description' => __( 'Confirm a membership upgrade after payment.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires login; include the Stripe payment intent ID for paid plans.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type' => 'application/json',
+                        'X-WP-Nonce'   => 'paste-nonce-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'plan'           => 'platinum',
+                        'payment_intent' => 'pi_example',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success' => true,
+                        'level'   => 'platinum',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'GET',
+                'url'         => $member_url,
+                'description' => __( 'Fetch the authenticated member profile.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires login via cookie or X-WP-Nonce header.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode( array( 'X-WP-Nonce' => 'paste-nonce-here' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'user' => array(
+                            'id'               => 123,
+                            'display_name'     => 'Taylor Jordan',
+                            'email'            => 'demo@example.com',
+                            'membership_level' => 'gold',
+                            'direct_recruits'  => 2,
+                            'sponsor_id'       => 42,
+                        ),
+                        'commissions' => array(
+                            'total'   => 250,
+                            'paid'    => 125,
+                            'pending' => 125,
+                        ),
+                        'ledger' => array(),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'GET',
+                'url'         => $genealogy_url . '?depth=3',
+                'description' => __( 'Render a genealogy tree for the current member.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires login; depth defaults to 3 levels.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode( array( 'X-WP-Nonce' => 'paste-nonce-here' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'id'       => 123,
+                        'name'     => 'Taylor Jordan',
+                        'level'    => 'gold',
+                        'recruits' => 2,
+                        'children' => array(),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'GET',
+                'url'         => $commissions_url,
+                'description' => __( 'List the commission summary and ledger.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires login via cookie or nonce.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode( array( 'X-WP-Nonce' => 'paste-nonce-here' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'summary' => array(
+                            'total'   => 250,
+                            'paid'    => 125,
+                            'pending' => 125,
+                        ),
+                        'ledger' => array(),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
@@ -456,6 +657,76 @@ class ApiTesterPage {
                         'email'      => 'customer@example.com',
                         'first_name' => 'Sky',
                         'last_name'  => 'River',
+                        'billing'    => array(),
+                        'shipping'   => array(),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $customer_url,
+                'description' => __( 'Create a WooCommerce customer account.', 'tcnapp-connector' ),
+                'note'        => __( 'Authenticate with a REST consumer key/secret that has write access.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Basic base64encodedcredentials',
+                        'Content-Type'  => 'application/json',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'email'      => 'newcustomer@example.com',
+                        'first_name' => 'Sky',
+                        'last_name'  => 'River',
+                        'billing'    => array(
+                            'phone' => '+66-0000-0000',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'id'        => 789,
+                        'email'     => 'newcustomer@example.com',
+                        'first_name'=> 'Sky',
+                        'last_name' => 'River',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $orders_url,
+                'description' => __( 'Create a WooCommerce order with line items.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires consumer key/secret authentication with write permissions.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Basic base64encodedcredentials',
+                        'Content-Type'  => 'application/json',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'customer_id' => 789,
+                        'set_paid'    => true,
+                        'line_items'  => array(
+                            array(
+                                'product_id' => 1234,
+                                'quantity'   => 1,
+                            ),
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'id'   => 555,
+                        'data' => array(
+                            'status' => 'completed',
+                        ),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
