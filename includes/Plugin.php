@@ -2,6 +2,7 @@
 namespace TCN\Platform;
 
 use TCN\Platform\Admin\Assets;
+use TCN\Platform\Admin\ApiTesterPage;
 use TCN\Platform\Admin\LogPage;
 use TCN\Platform\Admin\SettingsPage;
 use TCN\Platform\Auth\PasswordLoginService;
@@ -61,6 +62,7 @@ class Plugin {
         if ( is_admin() ) {
             $this->services[] = new SettingsPage( $this->modules );
             $this->services[] = new LogPage();
+            $this->services[] = new ApiTesterPage();
             $this->services[] = new Assets();
         }
     }
