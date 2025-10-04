@@ -68,6 +68,44 @@ class WooCommerceEndpoints {
                 ),
             )
         );
+
+        register_rest_route(
+            'gn/v1',
+            '/orders',
+            array(
+                array(
+                    'methods'             => WP_REST_Server::CREATABLE,
+                    'callback'            => array( $this, 'create_order' ),
+                    'permission_callback' => array( $this, 'permissions_check' ),
+                    'args'                => array(
+                        'customer_id'    => array(
+                            'required'          => false,
+                            'validate_callback' => array( $this, 'validate_positive_int' ),
+                        ),
+                        'line_items'     => array(
+                            'required'          => true,
+                            'validate_callback' => array( $this, 'validate_object_type' ),
+                        ),
+                        'shipping_lines' => array(
+                            'required'          => false,
+                            'validate_callback' => array( $this, 'validate_object_type' ),
+                        ),
+                        'payment_method' => array(
+                            'required'          => false,
+                            'sanitize_callback' => 'sanitize_text_field',
+                        ),
+                        'set_paid'       => array(
+                            'required'          => false,
+                            'validate_callback' => array( $this, 'validate_boolean_value' ),
+                        ),
+                        'status'         => array(
+                            'required'          => false,
+                            'sanitize_callback' => 'sanitize_key',
+                        ),
+                    ),
+                ),
+            )
+        );
     }
 
     /**
@@ -120,6 +158,37 @@ class WooCommerceEndpoints {
      */
     public function validate_object_type( $value ): bool {
         return is_array( $value );
+    }
+
+    /**
+     * Validate that the provided value is a positive integer.
+     *
+     * @param mixed $value Value to validate.
+     */
+    public function validate_positive_int( $value ): bool {
+        return is_numeric( $value ) && (int) $value > 0;
+    }
+
+    /**
+     * Validate boolean-like values.
+     *
+     * @param mixed $value Value to validate.
+     */
+    public function validate_boolean_value( $value ): bool {
+        if ( is_bool( $value ) ) {
+            return true;
+        }
+
+        if ( is_numeric( $value ) ) {
+            return true;
+        }
+
+        if ( is_string( $value ) ) {
+            $value = strtolower( $value );
+            return in_array( $value, array( 'true', 'false', '1', '0' ), true );
+        }
+
+        return false;
     }
 
     /**
@@ -284,5 +353,118 @@ class WooCommerceEndpoints {
         }
 
         return $data;
+    }
+
+    /**
+     * Handle POST requests to create a WooCommerce order.
+     */
+    public function create_order( WP_REST_Request $request ) {
+        $params = $request->get_json_params();
+
+        if ( empty( $params ) ) {
+            $params = $request->get_body_params();
+        }
+
+        $customer_id    = isset( $params['customer_id'] ) ? (int) $params['customer_id'] : 0;
+        $line_items     = isset( $params['line_items'] ) && is_array( $params['line_items'] ) ? $params['line_items'] : array();
+        $shipping_lines = isset( $params['shipping_lines'] ) && is_array( $params['shipping_lines'] ) ? $params['shipping_lines'] : array();
+        $payment_method = isset( $params['payment_method'] ) ? sanitize_text_field( (string) $params['payment_method'] ) : '';
+        $set_paid       = isset( $params['set_paid'] ) ? wc_string_to_bool( $params['set_paid'] ) : true;
+        $status         = isset( $params['status'] ) ? sanitize_key( $params['status'] ) : 'completed';
+
+        if ( empty( $line_items ) ) {
+            return new WP_Error( 'tcn_missing_line_items', __( 'At least one line item is required to create an order.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+        }
+
+        if ( $customer_id > 0 && ! get_user_by( 'id', $customer_id ) ) {
+            return new WP_Error( 'tcn_invalid_customer', __( 'The specified customer could not be found.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+        }
+
+        $order_args = array();
+
+        if ( $customer_id > 0 ) {
+            $order_args['customer_id'] = $customer_id;
+        }
+
+        $order = wc_create_order( $order_args );
+
+        if ( is_wp_error( $order ) ) {
+            $order->add_data( array( 'status' => 400 ) );
+            return $order;
+        }
+
+        foreach ( $line_items as $item ) {
+            $product_id = isset( $item['product_id'] ) ? (int) $item['product_id'] : 0;
+            $quantity   = isset( $item['quantity'] ) ? max( 1, (int) $item['quantity'] ) : 1;
+
+            if ( $product_id <= 0 ) {
+                wc_delete_order( $order->get_id() );
+                return new WP_Error( 'tcn_missing_product_id', __( 'Each line item must include a valid product_id.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            }
+
+            $product = wc_get_product( $product_id );
+
+            if ( ! $product ) {
+                wc_delete_order( $order->get_id() );
+                return new WP_Error( 'tcn_invalid_product', __( 'One or more products could not be found.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            }
+
+            $order->add_product( $product, $quantity );
+        }
+
+        foreach ( $shipping_lines as $shipping_line ) {
+            if ( ! is_array( $shipping_line ) ) {
+                continue;
+            }
+
+            $shipping_item = new \WC_Order_Item_Shipping();
+
+            if ( isset( $shipping_line['method_id'] ) ) {
+                $shipping_item->set_method_id( sanitize_text_field( (string) $shipping_line['method_id'] ) );
+            }
+
+            if ( isset( $shipping_line['method_title'] ) ) {
+                $shipping_item->set_method_title( sanitize_text_field( (string) $shipping_line['method_title'] ) );
+            }
+
+            if ( isset( $shipping_line['total'] ) ) {
+                $shipping_item->set_total( wc_format_decimal( $shipping_line['total'] ) );
+            }
+
+            if ( isset( $shipping_line['total_tax'] ) ) {
+                $shipping_item->set_total_tax( wc_format_decimal( $shipping_line['total_tax'] ) );
+            }
+
+            if ( isset( $shipping_line['taxes'] ) && is_array( $shipping_line['taxes'] ) ) {
+                $shipping_item->set_taxes( $shipping_line['taxes'] );
+            }
+
+            $order->add_item( $shipping_item );
+        }
+
+        if ( $payment_method ) {
+            $order->set_payment_method( $payment_method );
+        }
+
+        $order->calculate_totals();
+
+        if ( $set_paid ) {
+            if ( method_exists( $order, 'payment_complete' ) ) {
+                $order->payment_complete();
+            } else {
+                $order->set_paid( true );
+            }
+        }
+
+        $order->set_status( $status ? $status : 'completed' );
+        $order->save();
+
+        return new WP_REST_Response(
+            array(
+                'id'   => $order->get_id(),
+                'data' => $order->get_data(),
+            ),
+            201
+        );
     }
 }
