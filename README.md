@@ -90,12 +90,17 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 🛠 Developer Notes
 
+- See [`docs/TCN_PLATFORM_REFERENCE.md`](docs/TCN_PLATFORM_REFERENCE.md) for a function-by-function and endpoint-by-endpoint reference covering hooks, parameters, authentication, and example payloads designed for the built-in API tester.
 - The plugin keeps using the bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library to fetch releases from GitHub. Adjust `TCN_PLATFORM_UPDATE_REPOSITORY_URL` and `TCN_PLATFORM_UPDATE_REPOSITORY_BRANCH` constants or the corresponding filters to change the source.
 - Services are registered through a lightweight service container (`TCN\Platform\Plugin`). Modules hook into this container to decide which services boot.
 - Activation seeds module options, membership defaults, WooCommerce endpoints, and products. Deactivation clears scheduled events and flushes rewrite rules.
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.24
+- Add an exhaustive reference manual that documents every public class method and REST endpoint, including WooCommerce routes, with example payloads tailored for the built-in API tester.
+- Expand the admin API tester presets so every endpoint can be exercised without leaving the dashboard.
 
 ### 0.3.23
 - Suppress default WordPress new user notification emails when registrations are created through the Password Login API so the app no longer triggers duplicate notices.
