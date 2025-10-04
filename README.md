@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.23
+- Suppress default WordPress new user notification emails when registrations are created through the Password Login API so the app no longer triggers duplicate notices.
+
 ### 0.3.22
 - Maintenance release to bump the plugin version for distribution.
 

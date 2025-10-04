@@ -165,7 +165,17 @@ class PasswordLoginService {
             return new WP_Error( 'gn_email_exists', __( 'This email address is already registered.', 'tcnapp-connector' ), array( 'status' => 409 ) );
         }
 
+        $suppress_new_user_notification = static function( $send ) {
+            return false;
+        };
+
+        add_filter( 'wp_send_new_user_notification_to_admin', $suppress_new_user_notification );
+        add_filter( 'wp_send_new_user_notification_to_user', $suppress_new_user_notification );
+
         $user_id = wp_create_user( $username, $password, $email );
+
+        remove_filter( 'wp_send_new_user_notification_to_admin', $suppress_new_user_notification );
+        remove_filter( 'wp_send_new_user_notification_to_user', $suppress_new_user_notification );
         if ( is_wp_error( $user_id ) ) {
             return new WP_Error( 'gn_registration_failed', __( 'Unable to create the user at this time.', 'tcnapp-connector' ), array( 'status' => 500 ) );
         }
