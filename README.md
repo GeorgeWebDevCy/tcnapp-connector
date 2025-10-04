@@ -52,14 +52,14 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 
 ## 📱 TCNApp Mobile Alignment
 
-TCN Platform keeps the WooCommerce catalogue aligned with the membership products consumed by the TCNApp mobile client. Default pricing mirrors the app’s subscription matrix so the web checkout and in-app upsells stay consistent:
+TCN Platform keeps the WooCommerce catalogue aligned with the membership products consumed by the TCNApp mobile client. Default pricing now mirrors the THB membership matrix so the web checkout and in-app upsells stay consistent:
 
-| Tier | Mobile Label | Default Price (USD) | Notes |
+| Tier | Mobile Label | Default Price (THB) | Notes |
 | ---- | ------------- | ------------------- | ----- |
-| Blue | Customer | $0 | Baseline storefront access with no commissions. |
-| Gold | Affiliate | $149 | Unlocks direct recruitment commissions and eligibility for passive rewards after two directs. |
-| Platinum | Leader | $399 | Higher direct commission rate and first-level passive income. |
-| Black | Elite | $899 | Top-tier commission multipliers plus leadership resources mirrored in the app. |
+| Blue | Customer | ฿0 | Baseline storefront access with no commissions. |
+| Gold | Affiliate | ฿500 | Earns THB125 on each direct recruit and unlocks passive rewards after two directs. |
+| Platinum | Leader | ฿1,200 | Awards THB250 on new directs while maintaining THB125 passive overrides. |
+| Black | Elite | ฿2,000 | Leadership renewal tier with continued THB125 passive income from downline activity. |
 
 Sites can override these amounts from **TCN Platform → Membership Defaults**, but the seeded WooCommerce products and mobile catalogue remain in sync by default.
 
@@ -90,6 +90,11 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.7
+- Align default membership pricing with the THB consumer network matrix, including commission overrides for Platinum/Black sponsors.
+- Track total network size for auto-upgrades so Platinum members advance to Black once their active downline reaches two people.
+- Update docs and option defaults to reflect THB currency throughout the plugin.
 
 ### 0.3.6
 - Document TCNApp mobile pricing alignment and update default membership fees to match the current catalogue.
