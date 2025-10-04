@@ -70,11 +70,17 @@ class Options {
         // Only expose the official tiers even if legacy data introduces stray keys.
         $levels = array_intersect_key( $levels, $defaults );
 
-        return self::apply_membership_product_fees( $levels );
+        $levels = self::apply_membership_product_fees( $levels );
+
+        WPML::register_membership_levels( $levels );
+
+        return WPML::translate_membership_levels( $levels );
     }
 
     public static function update_levels( array $levels ): void {
         update_option( self::OPTION_LEVELS, $levels );
+
+        WPML::register_membership_levels( $levels );
     }
 
     /**
