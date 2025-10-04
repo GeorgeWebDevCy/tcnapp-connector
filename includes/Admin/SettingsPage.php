@@ -490,11 +490,11 @@ class SettingsPage {
             )
         );
 
-        if ( empty( $products ) ) {
-            return array();
+        if ( is_wp_error( $products ) ) {
+            $products = array();
         }
 
-        $options = array( 0 => __( '— Select —', 'tcnapp-connector' ) );
+        $options = array();
 
         foreach ( $products as $product ) {
             $options[ $product->get_id() ] = sprintf(
@@ -505,7 +505,53 @@ class SettingsPage {
             );
         }
 
-        return $options;
+        if ( empty( $options ) ) {
+            $product_posts = get_posts(
+                array(
+                    'post_type'      => 'product',
+                    'post_status'    => 'any',
+                    'posts_per_page' => -1,
+                    'orderby'        => 'title',
+                    'order'          => 'ASC',
+                    'fields'         => 'ids',
+                )
+            );
+
+            if ( ! empty( $product_posts ) ) {
+                foreach ( $product_posts as $product_id ) {
+                    $product_id = (int) $product_id;
+
+                    if ( $product_id <= 0 ) {
+                        continue;
+                    }
+
+                    $product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+
+                    if ( $product && $product->is_type( 'variation' ) ) {
+                        continue;
+                    }
+
+                    $name = $product ? $product->get_name() : get_the_title( $product_id );
+
+                    if ( '' === $name ) {
+                        continue;
+                    }
+
+                    $options[ $product_id ] = sprintf(
+                        /* translators: 1: WooCommerce product name, 2: product ID */
+                        __( '%1$s (#%2$d)', 'tcnapp-connector' ),
+                        $name,
+                        $product_id
+                    );
+                }
+            }
+        }
+
+        if ( empty( $options ) ) {
+            return array();
+        }
+
+        return array( 0 => __( '— Select —', 'tcnapp-connector' ) ) + $options;
     }
 
     /**
