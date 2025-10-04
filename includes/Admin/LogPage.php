@@ -9,6 +9,7 @@ use function add_submenu_page;
 use function admin_url;
 use function current_user_can;
 use function date_i18n;
+use function esc_attr;
 use function esc_html;
 use function esc_html__;
 use function esc_html_e;
@@ -19,6 +20,7 @@ use function wp_die;
 use function wp_get_current_user;
 use function wp_get_referer;
 use function wp_json_encode;
+use function wp_is_numeric_array;
 use function wp_nonce_field;
 use function wp_safe_redirect;
 use function wp_unslash;
@@ -147,65 +149,149 @@ class LogPage {
     }
 
     protected function render_details( $details ): string {
-        if ( empty( $details ) ) {
+        return $this->render_detail_fragment( $details );
+    }
+
+    protected function render_detail_fragment( $value, int $depth = 0, string $parent_key = '' ): string {
+        if ( null === $value ) {
             return '<span class="tcn-platform-log-empty">—</span>';
         }
 
-        if ( is_scalar( $details ) ) {
-            if ( is_bool( $details ) ) {
-                return $details ? esc_html__( 'Yes', 'tcnapp-connector' ) : esc_html__( 'No', 'tcnapp-connector' );
-            }
-
-            return esc_html( (string) $details );
-        }
-
-        if ( is_array( $details ) ) {
-            $items = array();
-            foreach ( $details as $key => $value ) {
-                $label  = is_string( $key ) ? esc_html( ucfirst( str_replace( '_', ' ', $key ) ) ) : esc_html( (string) $key );
-                $items[] = sprintf(
-                    '<li><span class="tcn-platform-log-key">%s</span>%s</li>',
-                    $label,
-                    $this->render_detail_value( $value )
-                );
-            }
-
-            return '<ul class="tcn-platform-log-list">' . implode( '', $items ) . '</ul>';
-        }
-
-        if ( $details instanceof \JsonSerializable ) {
-            return '<pre class="tcn-platform-log-pre">' . esc_html( wp_json_encode( $details, JSON_PRETTY_PRINT ) ) . '</pre>';
-        }
-
-        return esc_html( (string) $details );
-    }
-
-    protected function render_detail_value( $value ): string {
-        if ( is_array( $value ) ) {
-            if ( empty( $value ) ) {
-                return '<span class="tcn-platform-log-empty">—</span>';
-            }
-
+        if ( $value instanceof \JsonSerializable ) {
             $encoded = wp_json_encode( $value, JSON_PRETTY_PRINT );
             if ( false === $encoded ) {
                 $encoded = wp_json_encode( $value );
             }
 
+            if ( false === $encoded ) {
+                return '<span class="tcn-platform-log-empty">—</span>';
+            }
+
             return '<pre class="tcn-platform-log-pre">' . esc_html( (string) $encoded ) . '</pre>';
         }
 
+        if ( is_object( $value ) ) {
+            $value = (array) $value;
+        }
+
+        if ( is_array( $value ) ) {
+            if ( empty( $value ) ) {
+                return '<span class="tcn-platform-log-empty">—</span>';
+            }
+
+            if ( wp_is_numeric_array( $value ) ) {
+                $items = array();
+                foreach ( $value as $item ) {
+                    $items[] = '<li>' . $this->render_detail_fragment( $item, $depth + 1 ) . '</li>';
+                }
+
+                $classes = array( 'tcn-platform-log-list', 'is-numeric' );
+                if ( $depth > 0 ) {
+                    $classes[] = 'is-nested';
+                }
+
+                return sprintf( '<ol class="%s">%s</ol>', esc_attr( implode( ' ', $classes ) ), implode( '', $items ) );
+            }
+
+            $rows = array();
+            foreach ( $value as $key => $item ) {
+                $label = $this->format_detail_label( $key );
+                $rows[] = sprintf(
+                    '<div class="tcn-platform-log-detail-row"><dt>%s</dt><dd>%s</dd></div>',
+                    esc_html( $label ),
+                    $this->render_detail_fragment( $item, $depth + 1, is_string( $key ) ? strtolower( (string) $key ) : '' )
+                );
+            }
+
+            $classes = array( 'tcn-platform-log-details' );
+            if ( $depth > 0 ) {
+                $classes[] = 'is-nested';
+            }
+
+            return sprintf( '<dl class="%s">%s</dl>', esc_attr( implode( ' ', $classes ) ), implode( '', $rows ) );
+        }
+
         if ( is_bool( $value ) ) {
-            return sprintf( '<span class="tcn-platform-log-boolean %s">%s</span>', $value ? 'is-true' : 'is-false', esc_html( $value ? __( 'Yes', 'tcnapp-connector' ) : __( 'No', 'tcnapp-connector' ) ) );
+            return sprintf(
+                '<span class="tcn-platform-log-boolean %s">%s</span>',
+                $value ? 'is-true' : 'is-false',
+                esc_html( $value ? __( 'Yes', 'tcnapp-connector' ) : __( 'No', 'tcnapp-connector' ) )
+            );
         }
 
         if ( is_numeric( $value ) ) {
-            return '<span class="tcn-platform-log-number">' . esc_html( (string) $value ) . '</span>';
+            return sprintf( '<span class="tcn-platform-log-number">%s</span>', esc_html( (string) $value ) );
         }
 
-        if ( null === $value ) {
-            return '<span class="tcn-platform-log-empty">null</span>';
+        if ( is_string( $value ) ) {
+            $trimmed = trim( $value );
+            if ( '' === $trimmed ) {
+                return '<span class="tcn-platform-log-empty">—</span>';
+            }
+
+            $lower_value = strtolower( $trimmed );
+
+            if ( 'result' === $parent_key ) {
+                $class = 'tcn-platform-log-badge';
+                if ( in_array( $lower_value, array( 'success', 'ok' ), true ) ) {
+                    $class .= ' is-success';
+                } elseif ( in_array( $lower_value, array( 'error', 'fail', 'failure' ), true ) ) {
+                    $class .= ' is-error';
+                }
+
+                return sprintf( '<span class="%s">%s</span>', esc_attr( $class ), esc_html( ucfirst( $lower_value ) ) );
+            }
+
+            if ( 'log_level' === $parent_key ) {
+                $class = 'tcn-platform-log-badge';
+                if ( in_array( $lower_value, array( 'warn', 'warning' ), true ) ) {
+                    $class .= ' is-warning';
+                } elseif ( in_array( $lower_value, array( 'error', 'critical' ), true ) ) {
+                    $class .= ' is-error';
+                } elseif ( in_array( $lower_value, array( 'debug' ), true ) ) {
+                    $class .= ' is-muted';
+                } else {
+                    $class .= ' is-success';
+                }
+
+                return sprintf( '<span class="%s">%s</span>', esc_attr( $class ), esc_html( strtoupper( $trimmed ) ) );
+            }
+
+            return sprintf( '<span class="tcn-platform-log-text">%s</span>', esc_html( $trimmed ) );
         }
 
-        return '<span class="tcn-platform-log-text">' . esc_html( (string) $value ) . '</span>';
+        return esc_html( (string) $value );
+    }
+
+    protected function format_detail_label( $key ): string {
+        if ( is_int( $key ) ) {
+            /* translators: %d: Item number. */
+            return sprintf( __( 'Item %d', 'tcnapp-connector' ), $key + 1 );
+        }
+
+        $normalized = strtolower( (string) $key );
+
+        $map = array(
+            'namespace'     => __( 'Namespace', 'tcnapp-connector' ),
+            'status'        => __( 'Status Code', 'tcnapp-connector' ),
+            'result'        => __( 'Result', 'tcnapp-connector' ),
+            'user'          => __( 'User', 'tcnapp-connector' ),
+            'ip'            => __( 'IP Address', 'tcnapp-connector' ),
+            'ip_address'    => __( 'IP Address', 'tcnapp-connector' ),
+            'params'        => __( 'Parameters', 'tcnapp-connector' ),
+            'errors'        => __( 'Errors', 'tcnapp-connector' ),
+            'log_level'     => __( 'Log Level', 'tcnapp-connector' ),
+            'log_message'   => __( 'Log Message', 'tcnapp-connector' ),
+            'log_timestamp' => __( 'Log Timestamp', 'tcnapp-connector' ),
+            'log_source'    => __( 'Log Source', 'tcnapp-connector' ),
+            'log_params'    => __( 'Log Parameters', 'tcnapp-connector' ),
+            'planid'        => __( 'Plan ID', 'tcnapp-connector' ),
+        );
+
+        if ( isset( $map[ $normalized ] ) ) {
+            return $map[ $normalized ];
+        }
+
+        return ucwords( preg_replace( '/[_\-.]+/', ' ', (string) $key ) );
     }
 }
