@@ -471,10 +471,16 @@ class SettingsPage {
             return array();
         }
 
+        $statuses = array_keys( wc_get_product_statuses() );
+
+        if ( empty( $statuses ) ) {
+            $statuses = array( 'publish', 'pending', 'draft', 'private' );
+        }
+
         $products = wc_get_products(
             array(
-                'limit'  => -1,
-                'status' => array( 'publish', 'pending', 'draft' ),
+                'limit'   => -1,
+                'status'  => $statuses,
                 'return'  => 'objects',
                 'orderby' => 'title',
                 'order'   => 'ASC',
