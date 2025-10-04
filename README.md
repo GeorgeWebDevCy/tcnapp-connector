@@ -50,6 +50,19 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 - Adds **MLM Dashboard** and **MLM Genealogy** entries to WooCommerce My Account navigation (`/my-account/tcn-member-dashboard/`, `/my-account/tcn-genealogy/`).
 - REST endpoints under `tcn-mlm/v1/*` expose member profiles, genealogy trees, and commission summaries (`/member`, `/genealogy`, `/commissions`) that power the TCNApp dashboards.
 
+## 📱 TCNApp Mobile Alignment
+
+TCN Platform keeps the WooCommerce catalogue aligned with the membership products consumed by the TCNApp mobile client. Default pricing mirrors the app’s subscription matrix so the web checkout and in-app upsells stay consistent:
+
+| Tier | Mobile Label | Default Price (USD) | Notes |
+| ---- | ------------- | ------------------- | ----- |
+| Blue | Customer | $0 | Baseline storefront access with no commissions. |
+| Gold | Affiliate | $149 | Unlocks direct recruitment commissions and eligibility for passive rewards after two directs. |
+| Platinum | Leader | $399 | Higher direct commission rate and first-level passive income. |
+| Black | Elite | $899 | Top-tier commission multipliers plus leadership resources mirrored in the app. |
+
+Sites can override these amounts from **TCN Platform → Membership Defaults**, but the seeded WooCommerce products and mobile catalogue remain in sync by default.
+
 ## 🔑 Password Login API Endpoints
 
 All endpoints live under `wp-json/gn/v1`:
@@ -77,6 +90,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.6
+- Document TCNApp mobile pricing alignment and update default membership fees to match the current catalogue.
 
 ### 0.3.5
 - Integrate Plugin Update Checker so WordPress installs can detect GitHub releases automatically.

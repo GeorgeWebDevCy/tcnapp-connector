@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.5
+Stable tag: 0.3.6
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -33,6 +33,15 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * `/wp-json/gn/v1/register`, `/forgot-password`, `/reset-password`, and `/change-password` wrap WordPress flows with opinionated validation and neutral responses to avoid account enumeration.
 * Member dashboards consume `/wp-json/tcn-mlm/v1/member`, `/genealogy`, and `/commissions` to populate the app UI.
 
+TCNApp’s membership catalogue currently surfaces the following pricing, which the plugin seeds into WooCommerce products so the web store and mobile upsells remain aligned:
+
+* **Blue (Customer)** – $0: storefront access without commission eligibility.
+* **Gold (Affiliate)** – $149: unlocks direct recruitment commissions and the ability to earn passive rewards after two direct recruits.
+* **Platinum (Leader)** – $399: increases direct commission rates and pays first-level passive income.
+* **Black (Elite)** – $899: top-tier commission multipliers and leadership enablement perks as mirrored in the mobile experience.
+
+Adjust these figures from **TCN Platform → Membership Defaults** if your deployment uses bespoke pricing; the plugin will continue syncing WooCommerce products and the TCNApp catalogue defaults unless changed.
+
 == Frequently Asked Questions ==
 = How do automatic updates work? =
 The bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) points to this GitHub repository. Override the repository URL or branch using the `TCN_PLATFORM_UPDATE_REPOSITORY_URL`, `TCN_PLATFORM_UPDATE_REPOSITORY_BRANCH` constants, or their filter counterparts.
@@ -47,6 +56,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.6 =
+* Document the TCNApp mobile pricing matrix and update default membership fees to match the app catalogue.
+
 = 0.3.5 =
 * Wire the plugin to the public GitHub repository via Plugin Update Checker so WordPress can discover releases automatically.
 
@@ -76,6 +88,9 @@ Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (
 (See previous entries for earlier releases.)
 
 == Upgrade Notice ==
+= 0.3.6 =
+Aligns default membership pricing with the latest TCNApp catalogue and documents the mobile plan matrix.
+
 = 0.3.5 =
 Enables automatic updates through the GitHub repository using the bundled Plugin Update Checker integration.
 
