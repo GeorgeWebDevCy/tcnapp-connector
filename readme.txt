@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.1
+Stable tag: 0.3.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -47,6 +47,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.2 =
+* Fix a fatal error on `init` by making the sponsor capture callback public so it can be used as an action hook.
+
 = 0.3.1 =
 * Harden membership product seeding against malformed level options that could trigger a fatal error during activation.
 
@@ -64,6 +67,9 @@ Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (
 (See previous entries for earlier releases.)
 
 == Upgrade Notice ==
+= 0.3.2 =
+Addresses a fatal error thrown on sites hooking into sponsor capture during `init`.
+
 = 0.3.1 =
 Prevents activation failures when legacy membership level options contain unexpected data structures.
 

@@ -555,7 +555,7 @@ class MembershipModule {
         );
     }
 
-    protected function maybe_capture_sponsor(): void {
+    public function maybe_capture_sponsor(): void {
         if ( headers_sent() ) {
             return;
         }

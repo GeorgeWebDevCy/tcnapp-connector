@@ -78,6 +78,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.2
+- Resolve a fatal error triggered on `init` when capturing sponsors by making the hooked callback public.
+
 ### 0.3.1
 - Hardened the membership product seeder to gracefully handle corrupted membership level option values.
 
