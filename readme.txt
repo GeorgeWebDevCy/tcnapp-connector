@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.34
+Stable tag: 0.3.35
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.35 =
+* Fix: Fall back to a direct WordPress product query when WooCommerce's product helper returns nothing so the membership mapping dropdown still lists existing catalogue items.
+
 = 0.3.34 =
 * Fix: Prevent a fatal error on the settings screen when WooCommerce isn't available by guarding membership product status lookups.
 

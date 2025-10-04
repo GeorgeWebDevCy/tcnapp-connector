@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.35
+- Fall back to a direct WordPress product lookup when WooCommerce's product helper returns nothing so membership mapping always lists existing catalogue items.
+
 ### 0.3.34
 - Prevent a fatal error on the settings screen when WooCommerce is unavailable by guarding membership product status lookups.
 
