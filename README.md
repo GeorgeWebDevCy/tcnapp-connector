@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.14
+- Allow unauthenticated clients to query `/wp-json/gn/v1/memberships/plans` so the mobile membership screen works for logged-out users.
+
 ### 0.3.13
 - Restore the GN `/memberships/*` REST endpoints so the mobile upgrade flow can load plans, create Stripe payment intents, and confirm upgrades.
 - Add Stripe API key fields to the settings screen and expose the publishable key in the plans payload.

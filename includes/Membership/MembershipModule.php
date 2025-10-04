@@ -137,7 +137,7 @@ class MembershipModule {
             array(
                 'methods'             => WP_REST_Server::READABLE,
                 'callback'            => array( $this, 'rest_get_membership_plans' ),
-                'permission_callback' => array( $this, 'rest_require_login' ),
+                'permission_callback' => '__return_true',
             )
         );
 
