@@ -27,6 +27,11 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * **Allowed CORS Origin** – Exact origin permitted to post to `gn/v1` endpoints. Leave blank to restrict to same-origin calls.
 * **Allow HTTP During Development** – Permits non-HTTPS requests when `WP_DEBUG` is true; use only on local environments. You can further customise HTTPS behaviour via the `gn_password_api_allow_dev_http` filter.
 
+== Activity Log ==
+* Monitor REST activity and plugin events from **TCN Platform → Activity Log** in the WordPress admin.
+* The log records calls to `gn/v1/*` and `tcn-mlm/v1/*`, automatically redacting sensitive payload fields such as passwords and tokens.
+* Plugin activation, deactivation, settings updates, and manual log clears also appear so administrators can audit configuration changes.
+
 == Mobile App Integration ==
 * TCNApp uses `/wp-json/gn/v1/*` for authentication and `/wp-json/tcn-mlm/v1/*` for membership data.
 * `/wp-json/gn/v1/login` accepts `mode=token` for cross-origin hand-offs plus optional IP / user-agent locking filters.

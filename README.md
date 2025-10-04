@@ -38,6 +38,12 @@ Toggle modules under **TCN Platform → Modules**. The Membership & MLM module s
 
 These settings persist in the `gn_login_api_settings` option. A compatibility shim keeps `GN_Password_Login_API` usable for legacy code.
 
+## 📊 Activity Monitoring
+
+- Review REST API usage and plugin events from **TCN Platform → Activity Log**.
+- The log captures calls to `gn/v1/*` and `tcn-mlm/v1/*` namespaces, redacting sensitive payload fields like passwords and tokens.
+- Activation, deactivation, settings changes, and manual log clears are also recorded so administrators can audit configuration changes.
+
 ## 💼 Membership & MLM Highlights
 
 - Seeds Blue/Gold/Platinum/Black WooCommerce products on activation, maintaining pricing alignment with the mobile catalogue.

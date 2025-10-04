@@ -55,3 +55,56 @@
     padding: 12px;
     background: #f0f6fc;
 }
+
+.tcn-platform-logs .description {
+    margin-bottom: 1rem;
+}
+
+.tcn-platform-log-actions {
+    margin: 1rem 0;
+}
+
+.tcn-platform-log-table td,
+.tcn-platform-log-table th {
+    vertical-align: top;
+}
+
+.tcn-platform-log-list {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.tcn-platform-log-key {
+    display: inline-block;
+    min-width: 140px;
+    font-weight: 600;
+}
+
+.tcn-platform-log-pre {
+    background: #f6f7f7;
+    border-radius: 4px;
+    padding: 8px 10px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.tcn-platform-log-boolean.is-true {
+    color: #0f8c1a;
+    font-weight: 600;
+}
+
+.tcn-platform-log-boolean.is-false {
+    color: #b52727;
+    font-weight: 600;
+}
+
+.tcn-platform-log-number,
+.tcn-platform-log-text {
+    font-family: Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+.tcn-platform-log-empty {
+    color: #64748b;
+    font-style: italic;
+}

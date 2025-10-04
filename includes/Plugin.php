@@ -2,10 +2,12 @@
 namespace TCN\Platform;
 
 use TCN\Platform\Admin\Assets;
+use TCN\Platform\Admin\LogPage;
 use TCN\Platform\Admin\SettingsPage;
 use TCN\Platform\Auth\PasswordLoginService;
 use TCN\Platform\Membership\MembershipModule;
 use TCN\Platform\Support\Modules;
+use TCN\Platform\Support\ActivityMonitor;
 use TCN\Platform\Support\Updater;
 
 class Plugin {
@@ -42,6 +44,7 @@ class Plugin {
 
     protected function register_services(): void {
         $this->services[] = new MembershipModule( $this->modules );
+        $this->services[] = new ActivityMonitor();
         $this->services[] = new Updater();
 
         if ( $this->modules->is_enabled( Modules::MODULE_AUTH_LOGIN ) ) {
@@ -52,6 +55,7 @@ class Plugin {
 
         if ( is_admin() ) {
             $this->services[] = new SettingsPage( $this->modules );
+            $this->services[] = new LogPage();
             $this->services[] = new Assets();
         }
     }
