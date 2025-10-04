@@ -1,0 +1,60 @@
+<?php
+namespace TCN\Platform;
+
+use TCN\Platform\Admin\Assets;
+use TCN\Platform\Admin\SettingsPage;
+use TCN\Platform\Auth\PasswordLoginService;
+use TCN\Platform\Membership\MembershipModule;
+use TCN\Platform\Support\Modules;
+
+class Plugin {
+    /**
+     * @var Modules
+     */
+    protected $modules;
+
+    /**
+     * @var array<int, object>
+     */
+    protected $services = array();
+
+    public function __construct() {
+        $this->modules = new Modules();
+    }
+
+    public function boot(): void {
+        add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+        $this->register_services();
+
+        foreach ( $this->services as $service ) {
+            if ( is_object( $service ) && method_exists( $service, 'register' ) ) {
+                $service->register();
+            }
+        }
+
+        do_action( 'tcn_platform_bootstrapped', $this );
+    }
+
+    public function load_textdomain(): void {
+        load_plugin_textdomain( 'tcnapp-connector', false, dirname( plugin_basename( TCN_PLATFORM_PLUGIN_FILE ) ) . '/languages' );
+    }
+
+    protected function register_services(): void {
+        $this->services[] = new MembershipModule( $this->modules );
+
+        if ( $this->modules->is_enabled( Modules::MODULE_AUTH_LOGIN ) ) {
+            $this->services[] = new PasswordLoginService();
+        } else {
+            PasswordLoginService::register_compatibility_alias();
+        }
+
+        if ( is_admin() ) {
+            $this->services[] = new SettingsPage( $this->modules );
+            $this->services[] = new Assets();
+        }
+    }
+
+    public function get_modules(): Modules {
+        return $this->modules;
+    }
+}

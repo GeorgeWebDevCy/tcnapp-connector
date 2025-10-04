@@ -1,0 +1,101 @@
+.tcn-member-dashboard {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    background: linear-gradient(135deg, #0f4c81, #1a94d4);
+    padding: 30px;
+    border-radius: 12px;
+    color: #fff;
+}
+
+.tcn-member-dashboard h2,
+.tcn-member-dashboard h3 {
+    margin-top: 0;
+    color: #fff;
+}
+
+.tcn-member-dashboard .tcn-member-summary,
+.tcn-member-dashboard .tcn-member-stats,
+.tcn-member-dashboard .tcn-member-ledger {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.tcn-member-dashboard ul {
+    list-style: disc inside;
+    margin: 0;
+    padding: 0;
+}
+
+.tcn-member-ledger table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+}
+
+.tcn-member-ledger th,
+.tcn-member-ledger td {
+    padding: 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.tcn-member-ledger tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.tcn-genealogy-tree {
+    font-family: "Segoe UI", sans-serif;
+    color: #0f172a;
+}
+
+.tcn-genealogy-node {
+    list-style: none;
+    padding-left: 0;
+}
+
+.tcn-genealogy-card {
+    display: inline-block;
+    background: #fff;
+    padding: 14px 18px;
+    border-radius: 8px;
+    border: 1px solid #cbd5f5;
+    box-shadow: 0 6px 16px rgba(15, 76, 129, 0.12);
+    min-width: 220px;
+    text-align: center;
+}
+
+.tcn-genealogy-level {
+    display: block;
+    font-size: 12px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: #0f4c81;
+    margin-top: 4px;
+}
+
+.tcn-genealogy-count {
+    display: block;
+    color: #475569;
+    margin-top: 4px;
+}
+
+.tcn-genealogy-children {
+    margin-top: 18px;
+    display: grid;
+    gap: 18px;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.tcn-mlm-optin {
+    padding: 24px;
+    border-radius: 12px;
+    background: rgba(15, 76, 129, 0.08);
+    border: 1px solid rgba(15, 76, 129, 0.2);
+}
+
+.tcn-mlm-optin h3 {
+    margin-top: 0;
+    color: #0f4c81;
+}

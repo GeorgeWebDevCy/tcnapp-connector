@@ -4,8 +4,8 @@
 TCN Platform combines the WooCommerce membership/MLM stack with the GN Password Login REST API in a single modular plugin. It tracks sponsor relationships, handles automatic upgrades, records commissions, surfaces dashboards, and exposes REST endpoints for the mobile and web clients that consume the platform. Each capability lives behind a module toggle so sites can slim down to the pieces they need while sharing a unified codebase.
 
 ## Key Components
-- **Plugin Bootstrap (`tcn-mlm.php`)** – Registers activation hooks, loads dependencies, and bootstraps the main service container. During activation it seeds module settings, membership defaults, WooCommerce endpoints, and password login defaults before flushing rewrite rules.
-- **Service Container (`TCN\\MLM\\Plugin`)** – Coordinates setup of subsystems (membership, network, commissions, dashboards, REST routes, authentication) and honours module toggles exposed by `Support\\Modules`.
+- **Plugin Bootstrap (`tcnapp-connector.php`)** – Registers activation hooks, loads dependencies, and bootstraps the main service container. During activation it seeds module settings, membership defaults, WooCommerce endpoints, and password login defaults before flushing rewrite rules.
+- **Service Container (`TCN\\Platform\\Plugin`)** – Coordinates setup of subsystems (membership, network, commissions, dashboards, REST routes, authentication) and honours module toggles exposed by `Support\\Modules`.
 - **Modules (`Support\\Modules`)** – Stores the enabled/disabled state of top-level features. The Membership & MLM module is locked on; the Password Login API module can be toggled and governs whether authentication endpoints boot. Settings persist in the `tcn_platform_modules` option.
 - **Authentication Service (`Auth\\PasswordLoginService`)** – Registers `/wp-json/gn/v1/*` routes for login, registration, password reset, and password change operations with rate limiting, HTTPS enforcement, one-time token login links, and configurable CORS headers. Provides helper methods (like issuing verification codes) and aliases itself to the legacy `GN_Password_Login_API` class.
 - **Membership Manager** – Stores membership levels on users, enforces upgrade rules (Gold → Platinum after 2 direct recruits, Platinum → Black after 2 active network members), and syncs WooCommerce order completions.
@@ -15,7 +15,7 @@ TCN Platform combines the WooCommerce membership/MLM stack with the GN Password 
 - **Branding & UX** – Front-end dashboard styling and admin previews mirror the mobile app’s blue gradient branding to provide a consistent experience across platforms.
 - **Member Dashboard Shortcodes** – Front-end shortcodes for members to view earnings, commissions, and downline activity. Genealogy output uses localized REST endpoints to render an interactive tree.
 - **WooCommerce Account Endpoints** – Adds `tcn-member-dashboard` and `tcn-genealogy` endpoints under My Account that render the same templates as the shortcodes, keeping page and account navigation aligned.
-- **REST API** – Namespaced endpoints under `/wp-json/tcn-mlm/v1/` expose genealogy data, member metrics, and commission summaries for authenticated users. `/wp-json/gn/v1/*` routes expose authentication flows when the Password Login module is enabled. `/wp-json/gn/v1/memberships/*` endpoints power the TCN mobile app membership catalogue and upgrade flows (the Stripe intent route returns a 501 response until a gateway integration hooks into `tcn_mlm_membership_create_payment_session`).
+- **REST API** – Namespaced endpoints under `/wp-json/tcn-mlm/v1/` expose genealogy data, member metrics, and commission summaries for authenticated users (notably `/member`, `/genealogy`, `/commissions`). `/wp-json/gn/v1/*` routes expose authentication flows when the Password Login module is enabled.
 - **Update Manager** – Wraps plugin-update-checker to fetch releases from GitHub and installs updates automatically. Repository URL and branch can be overridden via constants or filters.
 
 ## Data Model
@@ -44,7 +44,7 @@ TCN Platform combines the WooCommerce membership/MLM stack with the GN Password 
 
 ## WooCommerce Integration Flow
 1. On activation, the plugin seeds baseline membership products (Blue, Gold, Platinum, Black) with the correct level mapping if they don’t already exist.
-2. Member purchases a membership product and the order captures the level selected in the product data panel or the mobile app triggers `gn/v1/memberships/confirm` after confirming payment.
+2. Member purchases a membership product and the order captures the level selected in the product data panel or the mobile app directs the shopper through WooCommerce checkout using the mapped membership SKU.
 3. On `woocommerce_order_status_completed`, the Membership Manager promotes the purchasing user to the corresponding membership level (preferring the highest-ranking level in the order) and links the sponsor using referral metadata (shortcode or query param).
 4. Network Service updates direct recruit counts and determines whether the sponsor should form their own network or upgrade to Platinum/Black.
 5. Commission Manager records a direct commission for the sponsor. It then walks up the upline hierarchy to award passive commissions per rules (currently one depth level for Gold/Platinum to align with provided scenarios).
@@ -69,5 +69,5 @@ TCN Platform combines the WooCommerce membership/MLM stack with the GN Password 
 - Module system allows future capabilities (e.g., rewards, analytics exporters) to ship disabled by default and activated per deployment.
 
 ## Update Workflow
-- Automatic updates are handled by plugin-update-checker. Override the repository URL or branch via constants (`TCN_MLM_UPDATE_REPOSITORY_URL`, `TCN_MLM_UPDATE_REPOSITORY_BRANCH`) or filters (`tcn_mlm_update_repository_url`, `tcn_mlm_update_repository_branch`).
+- Automatic updates are handled by plugin-update-checker. Override the repository URL or branch via constants (`TCN_PLATFORM_UPDATE_REPOSITORY_URL`, `TCN_PLATFORM_UPDATE_REPOSITORY_BRANCH`) or filters (`tcn_platform_update_repository_url`, `tcn_platform_update_repository_branch`).
 - When the Password Login module is disabled the authentication services skip booting, but options remain stored so re-enabling is instant.
