@@ -88,7 +88,7 @@ class Options {
                 'name'               => __( 'Gold', 'tcnapp-connector' ),
                 'slug'               => 'gold',
                 'rank'               => 1,
-                'fee'                => 200,
+                'fee'                => 149,
                 'commission_direct'  => 50,
                 'commission_passive' => 10,
                 'benefits'           => array(
@@ -100,7 +100,7 @@ class Options {
                 'name'               => __( 'Platinum', 'tcnapp-connector' ),
                 'slug'               => 'platinum',
                 'rank'               => 2,
-                'fee'                => 500,
+                'fee'                => 399,
                 'commission_direct'  => 80,
                 'commission_passive' => 20,
                 'benefits'           => array(
@@ -112,7 +112,7 @@ class Options {
                 'name'               => __( 'Black', 'tcnapp-connector' ),
                 'slug'               => 'black',
                 'rank'               => 3,
-                'fee'                => 1000,
+                'fee'                => 899,
                 'commission_direct'  => 120,
                 'commission_passive' => 40,
                 'benefits'           => array(
