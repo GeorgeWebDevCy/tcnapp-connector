@@ -69,9 +69,53 @@
     vertical-align: top;
 }
 
+.tcn-platform-log-details {
+    margin: 0;
+}
+
+.tcn-platform-log-details.is-nested {
+    margin-top: 6px;
+}
+
+.tcn-platform-log-detail-row {
+    display: grid;
+    grid-template-columns: 160px 1fr;
+    gap: 4px 16px;
+    padding: 6px 0;
+    border-bottom: 1px solid #e2e8f0;
+}
+
+.tcn-platform-log-details.is-nested .tcn-platform-log-detail-row {
+    grid-template-columns: 140px 1fr;
+    padding: 4px 0;
+}
+
+.tcn-platform-log-detail-row:last-child {
+    border-bottom: 0;
+}
+
+.tcn-platform-log-details dt {
+    margin: 0;
+    font-weight: 600;
+    color: #1f2937;
+    text-transform: none;
+}
+
+.tcn-platform-log-details dd {
+    margin: 0;
+}
+
 .tcn-platform-log-list {
     margin: 0;
-    padding-left: 18px;
+    padding-left: 20px;
+}
+
+.tcn-platform-log-list.is-numeric {
+    list-style: decimal;
+}
+
+.tcn-platform-log-list.is-nested {
+    margin-top: 6px;
 }
 
 .tcn-platform-log-key {
@@ -97,6 +141,39 @@
 .tcn-platform-log-boolean.is-false {
     color: #b52727;
     font-weight: 600;
+}
+
+.tcn-platform-log-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    background: #e2e8f0;
+    color: #1f2937;
+}
+
+.tcn-platform-log-badge.is-success {
+    background: #dcfce7;
+    color: #065f46;
+}
+
+.tcn-platform-log-badge.is-error {
+    background: #fee2e2;
+    color: #b91c1c;
+}
+
+.tcn-platform-log-badge.is-warning {
+    background: #fef3c7;
+    color: #b45309;
+}
+
+.tcn-platform-log-badge.is-muted {
+    background: #e0e7ff;
+    color: #4338ca;
 }
 
 .tcn-platform-log-number,

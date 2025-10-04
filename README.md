@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.15
+- Restyled the Activity Log so REST and plugin events show labeled detail rows and badges, keeping payloads intact while making them easier to read.
+
 ### 0.3.14
 - Allow unauthenticated clients to query `/wp-json/gn/v1/memberships/plans` so the mobile membership screen works for logged-out users.
 
