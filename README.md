@@ -97,6 +97,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.20
+- Added an API Tester admin screen that mirrors Postman inside WordPress, letting you compose requests, send them to plugin endpoints, and inspect the raw responses.
+- Documented starter examples for authentication, registration, membership plans, and WooCommerce lookups so teams can quickly verify their integrations.
+
 ### 0.3.19
 - Allow WooCommerce REST API consumer keys to authenticate the `gn/v1` customer and order endpoints for secure headless integrations.
 
