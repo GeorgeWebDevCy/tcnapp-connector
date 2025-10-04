@@ -6,6 +6,7 @@ use TCN\Platform\Admin\LogPage;
 use TCN\Platform\Admin\SettingsPage;
 use TCN\Platform\Auth\PasswordLoginService;
 use TCN\Platform\Membership\MembershipModule;
+use TCN\Platform\Rest\WooCommerceEndpoints;
 use TCN\Platform\Support\Modules;
 use TCN\Platform\Support\ActivityMonitor;
 use TCN\Platform\Support\Updater;
@@ -51,6 +52,10 @@ class Plugin {
             $this->services[] = new PasswordLoginService();
         } else {
             PasswordLoginService::register_compatibility_alias();
+        }
+
+        if ( function_exists( 'wc_get_customer_id_by_email' ) ) {
+            $this->services[] = new WooCommerceEndpoints();
         }
 
         if ( is_admin() ) {
