@@ -99,32 +99,35 @@ class LogPage {
                 <?php submit_button( __( 'Clear Log', 'tcnapp-connector' ), 'delete', 'submit', false ); ?>
             </form>
 
-            <table class="widefat fixed striped tcn-platform-log-table">
-                <thead>
-                    <tr>
-                        <th><?php esc_html_e( 'Time', 'tcnapp-connector' ); ?></th>
-                        <th><?php esc_html_e( 'Source', 'tcnapp-connector' ); ?></th>
-                        <th><?php esc_html_e( 'Message', 'tcnapp-connector' ); ?></th>
-                        <th><?php esc_html_e( 'Details', 'tcnapp-connector' ); ?></th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php if ( empty( $logs ) ) : ?>
+            <div class="tcn-platform-log-table-wrapper">
+                <table id="tcn-platform-log-table" class="widefat fixed striped tcn-platform-log-table display nowrap" style="width:100%">
+                    <thead>
                         <tr>
-                            <td colspan="4"><?php esc_html_e( 'No activity recorded yet.', 'tcnapp-connector' ); ?></td>
+                            <th><?php esc_html_e( 'Time', 'tcnapp-connector' ); ?></th>
+                            <th><?php esc_html_e( 'Source', 'tcnapp-connector' ); ?></th>
+                            <th><?php esc_html_e( 'Message', 'tcnapp-connector' ); ?></th>
+                            <th><?php esc_html_e( 'Details', 'tcnapp-connector' ); ?></th>
                         </tr>
-                    <?php else : ?>
-                        <?php foreach ( $logs as $entry ) : ?>
+                    </thead>
+                    <tbody>
+                        <?php if ( empty( $logs ) ) : ?>
                             <tr>
-                                <td><?php echo esc_html( $this->format_time( $entry['time'] ) ); ?></td>
-                                <td><?php echo esc_html( $this->format_source( $entry['source'] ) ); ?></td>
-                                <td><?php echo esc_html( $entry['message'] ); ?></td>
-                                <td><?php echo $this->render_details( $entry['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                                <td colspan="4"><?php esc_html_e( 'No activity recorded yet.', 'tcnapp-connector' ); ?></td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
-                </tbody>
-            </table>
+                        <?php else : ?>
+                            <?php foreach ( $logs as $entry ) : ?>
+                                <?php $timestamp = isset( $entry['time'] ) ? (int) $entry['time'] : 0; ?>
+                                <tr>
+                                    <td data-order="<?php echo esc_attr( $timestamp ); ?>"><?php echo esc_html( $this->format_time( $timestamp ) ); ?></td>
+                                    <td><?php echo esc_html( $this->format_source( $entry['source'] ) ); ?></td>
+                                    <td><?php echo esc_html( $entry['message'] ); ?></td>
+                                    <td><?php echo $this->render_details( $entry['context'] ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
         </div>
         <?php
     }

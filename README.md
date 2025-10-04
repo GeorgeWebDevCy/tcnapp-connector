@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.16
+- Refresh the Activity Log UI with a responsive DataTable that adds instant search, pagination, and filtering while keeping entries easy to scan on any screen size.
+
 ### 0.3.15
 - Restyled the Activity Log so REST and plugin events show labeled detail rows and badges, keeping payloads intact while making them easier to read.
 
