@@ -1,0 +1,71 @@
+=== TCN Platform ===
+Contributors: georgewebdevcy
+Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
+Requires at least: 6.0
+Tested up to: 6.5
+Requires PHP: 7.4
+Stable tag: 0.3.0
+License: GPLv2 or later
+License URI: https://www.gnu.org/licenses/gpl-2.0.html
+
+== Description ==
+TCN Platform unifies the WooCommerce membership/MLM engine and the GN Password Login REST API into one modular plugin. Enable the full stack to automate tier upgrades, sponsor relationships, commissions, dashboards, and mobile authentication for the TCNApp client—all without juggling multiple codebases. Toggle optional modules as your deployment matures.
+
+=== Modules ===
+* **Membership & MLM (always on)** – Seeds and syncs Blue/Gold/Platinum/Black membership products, manages genealogy, promotes members based on network rules, tracks commissions, exposes `tcn-mlm/v1/*` REST endpoints, and injects dashboards into WooCommerce My Account.
+* **Password Login API** – Provides hardened REST authentication endpoints under `gn/v1` with HTTPS enforcement, one-time token login, rate limiting, registration, password reset/change flows, and configurable CORS support. The historic `GN_Password_Login_API` class is aliased for backwards compatibility.
+
+Configure modules under **TCN Platform → Modules**. The Membership & MLM module is locked on so the core data structures remain available, while the Password Login API can be disabled if another login layer is preferred.
+
+== Installation ==
+1. Upload the `tcn-platform` directory to `/wp-content/plugins/` (or clone the repository there).
+2. Activate **TCN Platform** from the Plugins screen.
+3. Visit **TCN Platform** in the admin menu to review module toggles, set the Password Login API allowed origin (for SPA/mobile clients), and adjust membership defaults.
+4. Flush permalinks (`Settings → Permalinks → Save`) so WooCommerce account endpoints are registered.
+
+== Password Login API Configuration ==
+* **Allowed CORS Origin** – Exact origin permitted to post to `gn/v1` endpoints. Leave blank to restrict to same-origin calls.
+* **Allow HTTP During Development** – Permits non-HTTPS requests when `WP_DEBUG` is true; use only on local environments. You can further customise HTTPS behaviour via the `gn_password_api_allow_dev_http` filter.
+
+== Mobile App Integration ==
+* TCNApp uses `/wp-json/gn/v1/*` for authentication and `/wp-json/tcn-mlm/v1/*` for membership data.
+* `/wp-json/gn/v1/login` accepts `mode=token` for cross-origin hand-offs plus optional IP / user-agent locking filters.
+* `/wp-json/gn/v1/register`, `/forgot-password`, `/reset-password`, and `/change-password` wrap WordPress flows with opinionated validation and neutral responses to avoid account enumeration.
+* Membership catalogue, upgrade confirmations, and profile metadata are exposed through the existing `tcn-mlm` REST endpoints.
+
+== Frequently Asked Questions ==
+= How do automatic updates work? =
+The bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) points to this GitHub repository. Override the repository URL or branch using the `TCN_MLM_UPDATE_REPOSITORY_URL`, `TCN_MLM_UPDATE_REPOSITORY_BRANCH` constants, or their filter counterparts.
+
+= Can I keep calling `GN_Password_Login_API` from custom code? =
+Yes. The class now aliases `TCN\MLM\Auth\PasswordLoginService`, so legacy bootstraps continue to function.
+
+= What happens if I disable the Password Login API module? =
+The REST endpoints stop registering, but existing options remain stored. Re-enable the module to restore the endpoints without reconfiguration.
+
+= Which WooCommerce products are created automatically? =
+Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
+
+== Changelog ==
+= 0.3.0 =
+* Renamed the combined package to **TCN Platform**.
+* Integrated the GN Password Login API service, added module toggles, and exposed CORS/HTTPS configuration in the admin.
+* Refreshed the settings UI with module, authentication, and membership cards.
+
+= 0.2.1 =
+* Return membership plan prices in minor currency units for mobile display accuracy.
+
+= 0.2.0 =
+* Enforce membership pricing and category alignment every load plus scheduled re-syncs.
+
+(See previous entries for earlier releases.)
+
+== Upgrade Notice ==
+= 0.3.0 =
+New modular architecture plus integrated password login endpoints. Review module settings after updating.
+
+= 0.2.1 =
+Corrects mobile membership plan pricing units.
+
+= 0.2.0 =
+Improves pricing/category enforcement for seeded membership products.
