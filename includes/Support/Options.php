@@ -151,14 +151,22 @@ class Options {
                 continue;
             }
 
-            $price = $product->get_price( 'edit' );
+            $price = $product->get_meta( '_price', true );
 
             if ( '' === $price ) {
-                $price = $product->get_regular_price( 'edit' );
+                $price = $product->get_meta( '_regular_price', true );
+            }
+
+            if ( '' === $price ) {
+                $price = $product->get_price( 'edit' );
             }
 
             if ( '' === $price ) {
                 $price = 0;
+            }
+
+            if ( is_string( $price ) && function_exists( 'wc_clean' ) ) {
+                $price = wc_clean( $price );
             }
 
             if ( function_exists( 'wc_format_decimal' ) ) {

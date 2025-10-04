@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.27
+- Read membership pricing directly from WooCommerce product meta so third-party price filters no longer downscale the fees surfaced to the mobile app.
+
 ### 0.3.26
 - Restore numeric membership pricing in the mobile plans endpoint and expose formatted amounts so the app no longer renders "THBNaN" labels.
 
