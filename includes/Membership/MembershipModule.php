@@ -532,6 +532,35 @@ class MembershipModule {
      * @return array<string, int>
      */
     protected function get_membership_products(): array {
+        $mapping   = Options::get_membership_product_map();
+        $validated = array();
+
+        if ( ! empty( $mapping ) ) {
+            foreach ( $mapping as $slug => $product_id ) {
+                $product_id = (int) $product_id;
+
+                if ( $product_id <= 0 ) {
+                    continue;
+                }
+
+                if ( function_exists( 'wc_get_product' ) ) {
+                    $product = wc_get_product( $product_id );
+
+                    if ( ! $product ) {
+                        continue;
+                    }
+                } elseif ( ! get_post( $product_id ) ) {
+                    continue;
+                }
+
+                $validated[ $slug ] = $product_id;
+            }
+
+            if ( ! empty( $validated ) ) {
+                return $validated;
+            }
+        }
+
         if ( ! function_exists( 'wc_get_products' ) ) {
             return array();
         }

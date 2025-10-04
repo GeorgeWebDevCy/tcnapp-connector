@@ -90,6 +90,10 @@ class Options {
     }
 
     public static function update_general_settings( array $settings ): void {
+        if ( isset( $settings['membership_products'] ) && is_array( $settings['membership_products'] ) ) {
+            $settings['membership_products'] = self::normalize_membership_product_map( $settings['membership_products'] );
+        }
+
         update_option( self::OPTION_GENERAL, $settings );
     }
 
@@ -118,7 +122,39 @@ class Options {
      * @return array<string, array<string, mixed>>
      */
     protected static function apply_membership_product_fees( array $levels ): array {
-        if ( empty( $levels ) || ! function_exists( 'wc_get_products' ) ) {
+        if ( empty( $levels ) ) {
+            return $levels;
+        }
+
+        $assigned = self::get_membership_product_map();
+
+        if ( function_exists( 'wc_get_product' ) && ! empty( $assigned ) ) {
+            foreach ( $assigned as $slug => $product_id ) {
+                if ( ! isset( $levels[ $slug ] ) ) {
+                    continue;
+                }
+
+                $product = wc_get_product( $product_id );
+
+                if ( ! $product ) {
+                    continue;
+                }
+
+                $price = $product->get_price( 'edit' );
+
+                if ( '' === $price ) {
+                    $price = $product->get_regular_price( 'edit' );
+                }
+
+                if ( '' === $price ) {
+                    $price = $product->get_meta( '_price', true );
+                }
+
+                $levels[ $slug ]['fee'] = self::parse_currency_amount( $price );
+            }
+        }
+
+        if ( ! function_exists( 'wc_get_products' ) ) {
             return $levels;
         }
 
@@ -148,7 +184,7 @@ class Options {
 
             $level_key = sanitize_key( $level_key );
 
-            if ( '' === $level_key || ! isset( $levels[ $level_key ] ) ) {
+            if ( '' === $level_key || ! isset( $levels[ $level_key ] ) || isset( $assigned[ $level_key ] ) ) {
                 continue;
             }
 
@@ -317,7 +353,43 @@ class Options {
             'default_sponsor'        => 0,
             'stripe_publishable_key' => '',
             'stripe_secret_key'      => '',
+            'membership_products'    => array(),
         );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    public static function get_membership_product_map(): array {
+        $settings = self::get_general_settings();
+
+        if ( empty( $settings['membership_products'] ) || ! is_array( $settings['membership_products'] ) ) {
+            return array();
+        }
+
+        return self::normalize_membership_product_map( $settings['membership_products'] );
+    }
+
+    /**
+     * @param array<string, mixed> $mapping
+     *
+     * @return array<string, int>
+     */
+    protected static function normalize_membership_product_map( array $mapping ): array {
+        $normalized = array();
+
+        foreach ( $mapping as $slug => $product_id ) {
+            $slug       = sanitize_key( (string) $slug );
+            $product_id = (int) $product_id;
+
+            if ( '' === $slug || $product_id <= 0 ) {
+                continue;
+            }
+
+            $normalized[ $slug ] = $product_id;
+        }
+
+        return $normalized;
     }
 
     /**

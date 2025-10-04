@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.30
+- Allow administrators to map WooCommerce products to membership levels from the settings screen, persist the selections in plugin options, and keep the `_tcn_membership_level` meta in sync for reliable upgrades even when product slugs change.
+
 ### 0.3.29
 - Lock the Activity Log and API Tester admin pages behind a non-public password challenge that expires every 24 hours per administrator session.
 
