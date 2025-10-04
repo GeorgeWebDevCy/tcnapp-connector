@@ -597,9 +597,21 @@ class MembershipModule {
             return;
         }
 
-        $levels = Options::get_levels();
+        $levels          = Options::get_levels();
+        $default_levels  = Options::default_levels();
 
         foreach ( $levels as $key => $level ) {
+            $level_defaults = $default_levels[ $key ] ?? array(
+                'name' => is_string( $key ) ? ucwords( str_replace( '_', ' ', $key ) ) : __( 'Membership', 'tcnapp-connector' ),
+                'fee'  => 0,
+            );
+
+            if ( ! is_array( $level ) ) {
+                $level = $level_defaults;
+            } else {
+                $level = wp_parse_args( $level, $level_defaults );
+            }
+
             $existing = get_posts( array(
                 'post_type'      => 'product',
                 'posts_per_page' => 1,

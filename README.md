@@ -78,6 +78,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.1
+- Hardened the membership product seeder to gracefully handle corrupted membership level option values.
+
 ### 0.3.0
 - Renamed plugin to **TCN Platform** and introduced module toggles.
 - Integrated the GN Password Login REST API directly into the codebase with backwards-compatible class aliasing.
