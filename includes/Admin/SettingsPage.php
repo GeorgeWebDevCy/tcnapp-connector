@@ -471,13 +471,16 @@ class SettingsPage {
             return array();
         }
 
-        $statuses = array_keys( wc_get_product_statuses() );
+        $statuses = array();
+        if ( function_exists( 'wc_get_product_statuses' ) ) {
+            $statuses = array_keys( \wc_get_product_statuses() );
+        }
 
         if ( empty( $statuses ) ) {
             $statuses = array( 'publish', 'pending', 'draft', 'private' );
         }
 
-        $products = wc_get_products(
+        $products = \wc_get_products(
             array(
                 'limit'   => -1,
                 'status'  => $statuses,
