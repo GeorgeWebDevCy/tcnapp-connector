@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.11
+- Added an Activity Monitor inside the WordPress admin to review REST traffic and plugin lifecycle events at a glance.
+
 ### 0.3.8
 - Ensure membership level defaults repopulate missing fee and commission fields so the admin overview table shows accurate values.
 
