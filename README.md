@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.31
+- Expose commission controls on the admin settings screen so administrators can adjust direct and passive payouts per membership tier without editing code, keeping compensation programmes aligned with organisational changes.
+
 ### 0.3.30
 - Allow administrators to map WooCommerce products to membership levels from the settings screen, persist the selections in plugin options, and keep the `_tcn_membership_level` meta in sync for reliable upgrades even when product slugs change.
 
