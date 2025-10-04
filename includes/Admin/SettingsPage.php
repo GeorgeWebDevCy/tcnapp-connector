@@ -58,6 +58,8 @@ class SettingsPage {
 
         Options::update_login_settings( $login );
 
+        do_action( 'tcn_platform_settings_saved', $modules, $login );
+
         add_settings_error( 'tcn_platform', 'settings_saved', __( 'Settings saved.', 'tcnapp-connector' ), 'updated' );
     }
 
