@@ -33,13 +33,26 @@ class Options {
 
         $normalized = array();
         foreach ( $levels as $key => $level ) {
-            if ( ! is_array( $level ) ) {
+            if ( is_string( $level ) ) {
+                $level = array( 'name' => $level );
+            } elseif ( ! is_array( $level ) ) {
                 $level = array();
             }
 
-            $base = $defaults[ $key ] ?? array(
+            $slug = '';
+            if ( isset( $level['slug'] ) && is_string( $level['slug'] ) ) {
+                $slug = sanitize_key( $level['slug'] );
+            } elseif ( is_string( $key ) && '' !== $key ) {
+                $slug = sanitize_key( $key );
+            }
+
+            if ( '' === $slug ) {
+                continue;
+            }
+
+            $base = $defaults[ $slug ] ?? array(
                 'name'               => '',
-                'slug'               => $key,
+                'slug'               => $slug,
                 'rank'               => 0,
                 'fee'                => 0,
                 'commission_direct'  => 0,
@@ -47,7 +60,8 @@ class Options {
                 'benefits'           => array(),
             );
 
-            $normalized[ $key ] = wp_parse_args( $level, $base );
+            $level['slug']     = $slug;
+            $normalized[ $slug ] = wp_parse_args( $level, $base );
         }
 
         return array_replace( $defaults, $normalized );
