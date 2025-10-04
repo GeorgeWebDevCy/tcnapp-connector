@@ -31,14 +31,14 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * TCNApp uses `/wp-json/gn/v1/*` for authentication and `/wp-json/tcn-mlm/v1/*` for membership data.
 * `/wp-json/gn/v1/login` accepts `mode=token` for cross-origin hand-offs plus optional IP / user-agent locking filters.
 * `/wp-json/gn/v1/register`, `/forgot-password`, `/reset-password`, and `/change-password` wrap WordPress flows with opinionated validation and neutral responses to avoid account enumeration.
-* Membership catalogue, upgrade confirmations, and profile metadata are exposed through the existing `tcn-mlm` REST endpoints.
+* Member dashboards consume `/wp-json/tcn-mlm/v1/member`, `/genealogy`, and `/commissions` to populate the app UI.
 
 == Frequently Asked Questions ==
 = How do automatic updates work? =
-The bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) points to this GitHub repository. Override the repository URL or branch using the `TCN_MLM_UPDATE_REPOSITORY_URL`, `TCN_MLM_UPDATE_REPOSITORY_BRANCH` constants, or their filter counterparts.
+The bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) points to this GitHub repository. Override the repository URL or branch using the `TCN_PLATFORM_UPDATE_REPOSITORY_URL`, `TCN_PLATFORM_UPDATE_REPOSITORY_BRANCH` constants, or their filter counterparts.
 
 = Can I keep calling `GN_Password_Login_API` from custom code? =
-Yes. The class now aliases `TCN\MLM\Auth\PasswordLoginService`, so legacy bootstraps continue to function.
+Yes. The class now aliases `TCN\\Platform\\Auth\\PasswordLoginService`, so legacy bootstraps continue to function.
 
 = What happens if I disable the Password Login API module? =
 The REST endpoints stop registering, but existing options remain stored. Re-enable the module to restore the endpoints without reconfiguration.

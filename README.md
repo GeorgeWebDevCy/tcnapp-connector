@@ -48,7 +48,7 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
   - `[tcn_genealogy]` – Interactive downline tree.
   - `[tcn_mlm_optin]` – Simple opt-in container for custom messaging.
 - Adds **MLM Dashboard** and **MLM Genealogy** entries to WooCommerce My Account navigation (`/my-account/tcn-member-dashboard/`, `/my-account/tcn-genealogy/`).
-- REST endpoints under `tcn-mlm/v1/*` power the mobile membership catalogue, genealogy view, and upgrade flows consumed by TCNApp.
+- REST endpoints under `tcn-mlm/v1/*` expose member profiles, genealogy trees, and commission summaries (`/member`, `/genealogy`, `/commissions`) that power the TCNApp dashboards.
 
 ## 🔑 Password Login API Endpoints
 
@@ -71,8 +71,8 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 🛠 Developer Notes
 
-- The plugin keeps using the bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library to fetch releases from GitHub. Adjust `TCN_MLM_UPDATE_REPOSITORY_URL` and `TCN_MLM_UPDATE_REPOSITORY_BRANCH` constants or the corresponding filters to change the source.
-- Services are registered through a lightweight service container (`TCN\MLM\Plugin`). Modules hook into this container to decide which services boot.
+- The plugin keeps using the bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) library to fetch releases from GitHub. Adjust `TCN_PLATFORM_UPDATE_REPOSITORY_URL` and `TCN_PLATFORM_UPDATE_REPOSITORY_BRANCH` constants or the corresponding filters to change the source.
+- Services are registered through a lightweight service container (`TCN\Platform\Plugin`). Modules hook into this container to decide which services boot.
 - Activation seeds module options, membership defaults, WooCommerce endpoints, and products. Deactivation clears scheduled events and flushes rewrite rules.
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
