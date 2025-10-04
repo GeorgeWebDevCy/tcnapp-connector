@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.32
+- Register membership level labels and benefits with WPML so multilingual storefronts can translate TCN settings directly from the String Translation UI.
+
 ### 0.3.31
 - Expose commission controls on the admin settings screen so administrators can adjust direct and passive payouts per membership tier without editing code, keeping compensation programmes aligned with organisational changes.
 
