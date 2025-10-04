@@ -29,7 +29,28 @@ class Options {
             $levels = array();
         }
 
-        return wp_parse_args( $levels, self::default_levels() );
+        $defaults = self::default_levels();
+
+        $normalized = array();
+        foreach ( $levels as $key => $level ) {
+            if ( ! is_array( $level ) ) {
+                $level = array();
+            }
+
+            $base = $defaults[ $key ] ?? array(
+                'name'               => '',
+                'slug'               => $key,
+                'rank'               => 0,
+                'fee'                => 0,
+                'commission_direct'  => 0,
+                'commission_passive' => 0,
+                'benefits'           => array(),
+            );
+
+            $normalized[ $key ] = wp_parse_args( $level, $base );
+        }
+
+        return array_replace( $defaults, $normalized );
     }
 
     public static function update_levels( array $levels ): void {

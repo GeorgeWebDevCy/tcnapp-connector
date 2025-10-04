@@ -91,6 +91,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.8
+- Ensure membership level defaults repopulate missing fee and commission fields so the admin overview table shows accurate values.
+
 ### 0.3.7
 - Align default membership pricing with the THB consumer network matrix, including commission overrides for Platinum/Black sponsors.
 - Track total network size for auto-upgrades so Platinum members advance to Black once their active downline reaches two people.
