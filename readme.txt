@@ -4,12 +4,19 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.36
+Stable tag: 0.3.37
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
 == Description ==
 TCN Platform unifies the WooCommerce membership/MLM engine and the GN Password Login REST API into one modular plugin. Enable the full stack to automate tier upgrades, sponsor relationships, commissions, dashboards, and mobile authentication for the TCNApp client—all without juggling multiple codebases. Toggle optional modules as your deployment matures.
+
+== Requirements ==
+* WordPress 6.0 or later
+* WooCommerce 7.0 or later
+* PHP 7.4 or later
+* MySQL 5.7 / MariaDB 10.3 or later
+* HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless "Allow HTTP During Development" is enabled while `WP_DEBUG` is true)
 
 === Modules ===
 * **Membership & MLM (always on)** – Seeds and syncs Blue/Gold/Platinum/Black membership products, manages genealogy, promotes members based on network rules, tracks commissions, exposes `tcn-mlm/v1/*` REST endpoints, and injects dashboards into WooCommerce My Account.
@@ -23,22 +30,42 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 3. Visit **TCN Platform** in the admin menu to review module toggles, set the Password Login API allowed origin (for SPA/mobile clients), and adjust membership defaults.
 4. Flush permalinks (`Settings → Permalinks → Save`) so WooCommerce account endpoints are registered.
 
-== Password Login API Configuration ==
+== Module Configuration ==
+=== Modules Card ===
+* **Membership & MLM** – Core automation, genealogy, and REST APIs. Always enabled so data models remain available.
+* **Password Login API** – Can be toggled off if you already have an authentication layer; the original `GN_Password_Login_API` class remains available for legacy hooks.
+
+=== Password Login API Settings ===
 * **Allowed CORS Origin** – Exact origin permitted to post to `gn/v1` endpoints. Leave blank to restrict to same-origin calls.
 * **Allow HTTP During Development** – Permits non-HTTPS requests when `WP_DEBUG` is true; use only on local environments. You can further customise HTTPS behaviour via the `gn_password_api_allow_dev_http` filter.
 
-== Activity Log ==
+== Activity Monitoring ==
 * Monitor REST activity and plugin events from **TCN Platform → Activity Log** in the WordPress admin.
 * The log records calls to `gn/v1/*` and `tcn-mlm/v1/*`, automatically redacting sensitive payload fields such as passwords and tokens.
-* Plugin activation, deactivation, settings updates, and manual log clears also appear so administrators can audit configuration changes.
+* Plugin activation, deactivation, module toggles, settings updates, and manual log clears also appear so administrators can audit configuration changes.
+
+== Membership & MLM Highlights ==
+* Seed Blue/Gold/Platinum/Black WooCommerce products on activation so the catalogue aligns with the mobile tiers.
+* Track sponsor relationships, promote members through Gold → Platinum → Black as conditions are met, and schedule syncs that keep pricing/categories aligned.
+* Shortcodes:
+  * `[tcn_member_dashboard]` – Earnings, counts, ledger history.
+  * `[tcn_genealogy]` – Interactive downline tree.
+  * `[tcn_mlm_optin]` – Opt-in container ready for custom messaging.
+* Adds **MLM Dashboard** and **MLM Genealogy** entries to WooCommerce My Account navigation.
+* REST endpoints under `tcn-mlm/v1/*` expose profiles, genealogy trees, and commissions for the TCNApp dashboards.
+
+== Password Login API Endpoints ==
+* `/wp-json/gn/v1/login` – POST authentication with optional one-time token hand-offs (`mode=token`) plus rate limiting and optional device locking filters.
+* `/wp-json/gn/v1/register` – POST registration with validation for username, email, and password strength (`gn_password_api_user_registered` fires on success).
+* `/wp-json/gn/v1/forgot-password` and `/reset-password` – POST flows that mirror WordPress core without leaking account existence.
+* `/wp-json/gn/v1/change-password` – POST authenticated password changes with verification of the current password.
+* Helper: `GN_Password_Login_API::issue_reset_verification_code( $user_id, $ttl )` generates short-lived reset codes for bespoke flows.
 
 == Mobile App Integration ==
-* TCNApp uses `/wp-json/gn/v1/*` for authentication and `/wp-json/tcn-mlm/v1/*` for membership data.
-* `/wp-json/gn/v1/login` accepts `mode=token` for cross-origin hand-offs plus optional IP / user-agent locking filters.
-* `/wp-json/gn/v1/register`, `/forgot-password`, `/reset-password`, and `/change-password` wrap WordPress flows with opinionated validation and neutral responses to avoid account enumeration.
+* TCNApp uses `/wp-json/gn/v1/*` for authentication and `/wp-json/tcn-mlm/v1/*` for membership data that render the dashboards.
 * Member dashboards consume `/wp-json/tcn-mlm/v1/member`, `/genealogy`, and `/commissions` to populate the app UI.
 
-TCNApp’s membership catalogue currently surfaces the following THB pricing, which the plugin seeds into WooCommerce products so the web store and mobile upsells remain aligned:
+TCN Platform keeps the WooCommerce catalogue aligned with the membership tiers consumed by the TCNApp mobile client. Default pricing mirrors the THB membership matrix so the web store and in-app upsells stay consistent:
 
 * **Blue (Customer)** – ฿0: storefront access without commission eligibility.
 * **Gold (Affiliate)** – ฿500: earns THB125 on each direct recruit and unlocks passive rewards after two direct recruits.
@@ -46,6 +73,11 @@ TCNApp’s membership catalogue currently surfaces the following THB pricing, wh
 * **Black (Elite)** – ฿2,000: leadership renewal tier with continued THB125 passive income from downline activity.
 
 Adjust these figures from **TCN Platform → Membership Defaults** if your deployment uses bespoke pricing; the plugin will continue syncing WooCommerce products and the TCNApp catalogue defaults unless changed.
+
+== Developer Notes ==
+* Review [`docs/TCN_PLATFORM_REFERENCE.md`](docs/TCN_PLATFORM_REFERENCE.md) for a function-by-function and endpoint reference covering hooks, parameters, authentication, and example payloads.
+* The bundled [Plugin Update Checker](https://github.com/YahnisElsts/plugin-update-checker) polls GitHub for releases. Override the repository URL or branch with the `TCN_PLATFORM_UPDATE_REPOSITORY_URL` and `TCN_PLATFORM_UPDATE_REPOSITORY_BRANCH` constants or their filters to point to another source.
+* Services bootstrap via the lightweight `TCN\Platform\Plugin` container so modules can decide which features run on each request.
 
 == Frequently Asked Questions ==
 = How do automatic updates work? =
@@ -61,6 +93,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.37 =
+* Maintenance: Sync `readme.txt` with the project README and bump the plugin version for distribution.
+
 = 0.3.36 =
 * Enhancement: Polish the admin experience with cohesive cards, panels, and typography refinements across settings, the API tester, and the activity log.
 

@@ -98,6 +98,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.37
+- Sync the WordPress.org `readme.txt` with the detailed project README so plugin documentation stays consistent across distribut
+ion channels.
+
 ### 0.3.36
 - Polish every admin screen with elevated cards, section panels, and richer typography so settings, logs, and the API tester feel cohesive and easier to scan.
 
