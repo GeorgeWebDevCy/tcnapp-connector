@@ -377,7 +377,7 @@ class MembershipModule {
         if ( $sponsor_id ) {
             update_user_meta( $user_id, '_tcn_sponsor_id', $sponsor_id );
             $this->update_direct_recruits( $sponsor_id );
-            $this->maybe_handle_auto_upgrade( $sponsor_id );
+            $this->maybe_handle_ancestor_upgrades( $sponsor_id );
         }
     }
 
@@ -391,6 +391,7 @@ class MembershipModule {
         if ( $cookie ) {
             update_user_meta( $user_id, '_tcn_sponsor_id', $cookie );
             $this->update_direct_recruits( $cookie );
+            $this->maybe_handle_ancestor_upgrades( $cookie );
             return;
         }
 
@@ -398,6 +399,7 @@ class MembershipModule {
         if ( ! empty( $general['default_sponsor'] ) ) {
             update_user_meta( $user_id, '_tcn_sponsor_id', (int) $general['default_sponsor'] );
             $this->update_direct_recruits( (int) $general['default_sponsor'] );
+            $this->maybe_handle_ancestor_upgrades( (int) $general['default_sponsor'] );
         }
     }
 
@@ -412,15 +414,40 @@ class MembershipModule {
 
         $sponsor_id = (int) get_user_meta( $member_id, '_tcn_sponsor_id', true );
         if ( $sponsor_id ) {
-            $this->insert_commission( $sponsor_id, $member_id, $order_id, 'direct', (float) $levels[ $level_key ]['commission_direct'], $currency );
+            $direct_amount = $this->calculate_direct_commission_amount( $level_key, $sponsor_id, $levels );
+            if ( $direct_amount > 0 ) {
+                $this->insert_commission( $sponsor_id, $member_id, $order_id, 'direct', $direct_amount, $currency );
+            }
             $this->update_direct_recruits( $sponsor_id );
-            $this->maybe_handle_auto_upgrade( $sponsor_id );
+            $this->maybe_handle_ancestor_upgrades( $sponsor_id );
 
             $upline_id = (int) get_user_meta( $sponsor_id, '_tcn_sponsor_id', true );
-            if ( $upline_id && ! empty( $levels[ $level_key ]['commission_passive'] ) ) {
-                $this->insert_commission( $upline_id, $member_id, $order_id, 'passive', (float) $levels[ $level_key ]['commission_passive'], $currency );
+            $passive_amount = isset( $levels[ $level_key ]['commission_passive'] ) ? (float) $levels[ $level_key ]['commission_passive'] : 0.0;
+            if ( $upline_id && $passive_amount > 0 ) {
+                $this->insert_commission( $upline_id, $member_id, $order_id, 'passive', $passive_amount, $currency );
             }
         }
+    }
+
+    protected function calculate_direct_commission_amount( string $level_key, int $sponsor_id, array $levels ): float {
+        if ( empty( $levels[ $level_key ] ) ) {
+            return 0.0;
+        }
+
+        $level         = $levels[ $level_key ];
+        $base_amount   = isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0;
+        $sponsor_level = get_user_meta( $sponsor_id, '_tcn_membership_level', true );
+        if ( ! $sponsor_level ) {
+            $sponsor_level = 'blue';
+        }
+
+        if ( ! empty( $level['commission_direct_overrides'] ) && is_array( $level['commission_direct_overrides'] ) ) {
+            if ( isset( $level['commission_direct_overrides'][ $sponsor_level ] ) ) {
+                $base_amount = (float) $level['commission_direct_overrides'][ $sponsor_level ];
+            }
+        }
+
+        return (float) apply_filters( 'tcn_mlm_direct_commission_amount', $base_amount, $level_key, $sponsor_id, $sponsor_level, $levels );
     }
 
     protected function insert_commission( int $sponsor_id, int $member_id, int $order_id, string $level, float $amount, string $currency ): void {
@@ -443,14 +470,25 @@ class MembershipModule {
         );
     }
 
+    protected function maybe_handle_ancestor_upgrades( int $user_id ): void {
+        $current = $user_id;
+        $visited = array();
+
+        while ( $current && ! in_array( $current, $visited, true ) ) {
+            $visited[] = $current;
+            $this->maybe_handle_auto_upgrade( $current );
+            $current = (int) get_user_meta( $current, '_tcn_sponsor_id', true );
+        }
+    }
+
     protected function maybe_handle_auto_upgrade( int $user_id ): void {
         $current = get_user_meta( $user_id, '_tcn_membership_level', true );
-        $levels  = Options::get_levels();
         $recruits = (int) get_user_meta( $user_id, '_tcn_direct_recruits', true );
+        $network  = (int) get_user_meta( $user_id, '_tcn_network_size', true );
 
         if ( 'gold' === $current && $recruits >= 2 ) {
             $this->set_membership_level( $user_id, 'platinum' );
-        } elseif ( 'platinum' === $current && $recruits >= 2 ) {
+        } elseif ( 'platinum' === $current && $network >= 2 ) {
             $this->set_membership_level( $user_id, 'black' );
         } elseif ( empty( $current ) ) {
             $this->set_membership_level( $user_id, 'blue' );
@@ -473,14 +511,63 @@ class MembershipModule {
     }
 
     protected function update_direct_recruits( int $user_id ): void {
+        if ( $user_id <= 0 ) {
+            return;
+        }
+
+        $this->refresh_network_metrics( $user_id, array() );
+    }
+
+    protected function refresh_network_metrics( int $user_id, array $visited ): void {
+        if ( $user_id <= 0 || in_array( $user_id, $visited, true ) ) {
+            return;
+        }
+
+        $visited[] = $user_id;
+
         $recruits = count( get_users( array(
-            'fields'    => 'ids',
-            'meta_key'  => '_tcn_sponsor_id',
-            'meta_value'=> $user_id,
-            'number'    => -1,
+            'fields'     => 'ids',
+            'meta_key'   => '_tcn_sponsor_id',
+            'meta_value' => $user_id,
+            'number'     => -1,
         ) ) );
 
         update_user_meta( $user_id, '_tcn_direct_recruits', (int) $recruits );
+        update_user_meta( $user_id, '_tcn_network_size', (int) $this->count_network_members( $user_id ) );
+
+        $sponsor_id = (int) get_user_meta( $user_id, '_tcn_sponsor_id', true );
+        if ( $sponsor_id > 0 ) {
+            $this->refresh_network_metrics( $sponsor_id, $visited );
+        }
+    }
+
+    protected function count_network_members( int $user_id, array $visited = array() ): int {
+        if ( $user_id <= 0 || in_array( $user_id, $visited, true ) ) {
+            return 0;
+        }
+
+        $visited[] = $user_id;
+
+        $children = get_users( array(
+            'fields'     => 'ids',
+            'meta_key'   => '_tcn_sponsor_id',
+            'meta_value' => $user_id,
+            'number'     => -1,
+        ) );
+
+        $count = 0;
+
+        foreach ( $children as $child_id ) {
+            $child_id = (int) $child_id;
+            if ( in_array( $child_id, $visited, true ) ) {
+                continue;
+            }
+
+            $count++;
+            $count += $this->count_network_members( $child_id, $visited );
+        }
+
+        return $count;
     }
 
     protected function build_genealogy_tree( int $user_id, int $depth ): array {

@@ -88,36 +88,43 @@ class Options {
                 'name'               => __( 'Gold', 'tcnapp-connector' ),
                 'slug'               => 'gold',
                 'rank'               => 1,
-                'fee'                => 149,
-                'commission_direct'  => 50,
-                'commission_passive' => 10,
+                'fee'                => 500,
+                'commission_direct'  => 125,
+                'commission_passive' => 125,
+                'commission_direct_overrides' => array(
+                    'platinum' => 250,
+                    'black'    => 250,
+                ),
                 'benefits'           => array(
-                    __( 'Earn direct commissions on recruits', 'tcnapp-connector' ),
-                    __( 'Eligible for passive commissions after two direct recruits', 'tcnapp-connector' ),
+                    __( 'Earn THB125 on each direct recruit', 'tcnapp-connector' ),
+                    __( 'Unlock passive income after two recruits', 'tcnapp-connector' ),
                 ),
             ),
             'platinum' => array(
                 'name'               => __( 'Platinum', 'tcnapp-connector' ),
                 'slug'               => 'platinum',
                 'rank'               => 2,
-                'fee'                => 399,
-                'commission_direct'  => 80,
-                'commission_passive' => 20,
+                'fee'                => 1200,
+                'commission_direct'  => 250,
+                'commission_passive' => 125,
+                'commission_direct_overrides' => array(
+                    'black' => 250,
+                ),
                 'benefits'           => array(
-                    __( 'Higher direct commissions', 'tcnapp-connector' ),
-                    __( 'Passive commissions from first level downline', 'tcnapp-connector' ),
+                    __( 'Earn THB250 on each direct recruit', 'tcnapp-connector' ),
+                    __( 'Passive commissions continue from first downline level', 'tcnapp-connector' ),
                 ),
             ),
             'black'    => array(
                 'name'               => __( 'Black', 'tcnapp-connector' ),
                 'slug'               => 'black',
                 'rank'               => 3,
-                'fee'                => 899,
-                'commission_direct'  => 120,
-                'commission_passive' => 40,
+                'fee'                => 2000,
+                'commission_direct'  => 250,
+                'commission_passive' => 125,
                 'benefits'           => array(
-                    __( 'Maximum commission tier', 'tcnapp-connector' ),
-                    __( 'Priority support and leadership resources', 'tcnapp-connector' ),
+                    __( 'Leadership status with the highest renewal fee', 'tcnapp-connector' ),
+                    __( 'Continues earning THB125 from downline activity', 'tcnapp-connector' ),
                 ),
             ),
         );
@@ -128,7 +135,7 @@ class Options {
      */
     public static function default_general_settings(): array {
         return array(
-            'currency'        => 'USD',
+            'currency'        => 'THB',
             'default_sponsor' => 0,
         );
     }

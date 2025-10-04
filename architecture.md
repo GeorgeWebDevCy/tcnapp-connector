@@ -24,6 +24,7 @@ TCN Platform combines the WooCommerce membership/MLM stack with the GN Password 
   - `_tcn_sponsor_id` (int, user ID of direct sponsor)
   - `_tcn_network_owner` (int, root of the member's current network)
   - `_tcn_direct_recruits` (int, cached count for upgrade checks)
+  - `_tcn_network_size` (int, total members in the active downline used for Platinum → Black promotions)
   - `_gn_login_token_*` (JSON payloads for one-time token logins; created and deleted dynamically)
   - `_gn_password_api_reset_code` (hashed reset code bundle)
 - **Options**
