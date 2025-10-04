@@ -2,7 +2,9 @@
 namespace TCN\Platform\Membership;
 
 use TCN\Platform\Support\Options;
+use WP_Error;
 use WP_REST_Request;
+use WP_REST_Server;
 use WP_User;
 
 class MembershipModule {
@@ -126,6 +128,36 @@ class MembershipModule {
                 'permission_callback' => function () {
                     return is_user_logged_in();
                 },
+            )
+        );
+
+        register_rest_route(
+            'gn/v1',
+            '/memberships/plans',
+            array(
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => array( $this, 'rest_get_membership_plans' ),
+                'permission_callback' => array( $this, 'rest_require_login' ),
+            )
+        );
+
+        register_rest_route(
+            'gn/v1',
+            '/memberships/stripe-intent',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'rest_create_stripe_intent' ),
+                'permission_callback' => array( $this, 'rest_require_login' ),
+            )
+        );
+
+        register_rest_route(
+            'gn/v1',
+            '/memberships/confirm',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'rest_confirm_membership_upgrade' ),
+                'permission_callback' => array( $this, 'rest_require_login' ),
             )
         );
     }
@@ -308,6 +340,266 @@ class MembershipModule {
             'summary' => $this->get_commission_summary( get_current_user_id() ),
             'ledger'  => $this->get_commission_ledger( get_current_user_id(), 100 ),
         );
+    }
+
+    public function rest_require_login(): bool {
+        return is_user_logged_in();
+    }
+
+    public function rest_get_membership_plans( WP_REST_Request $request ): array {
+        $levels      = Options::get_levels();
+        $general     = Options::get_general_settings();
+        $currency    = isset( $general['currency'] ) ? $general['currency'] : 'USD';
+        $publishable = isset( $general['stripe_publishable_key'] ) ? $general['stripe_publishable_key'] : '';
+
+        $products = $this->get_membership_products();
+        $plans    = array();
+
+        foreach ( $levels as $key => $level ) {
+            if ( ! is_array( $level ) ) {
+                continue;
+            }
+
+            $benefits = array();
+            foreach ( isset( $level['benefits'] ) ? (array) $level['benefits'] : array() as $benefit ) {
+                if ( ! is_string( $benefit ) || '' === trim( $benefit ) ) {
+                    continue;
+                }
+                $benefits[] = wp_strip_all_tags( $benefit );
+            }
+
+            $plan = array(
+                'id'                 => $key,
+                'name'               => isset( $level['name'] ) ? (string) $level['name'] : '',
+                'fee'                => isset( $level['fee'] ) ? (float) $level['fee'] : 0.0,
+                'currency'           => $currency,
+                'benefits'           => $benefits,
+                'commission_direct'  => isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0,
+                'commission_passive' => isset( $level['commission_passive'] ) ? (float) $level['commission_passive'] : 0.0,
+                'product_id'         => isset( $products[ $key ] ) ? (int) $products[ $key ] : 0,
+            );
+
+            $plan['requires_payment'] = $plan['fee'] > 0;
+
+            $plans[] = $plan;
+        }
+
+        return array(
+            'currency'          => $currency,
+            'publishableKey'    => $publishable,
+            'publishable_key'   => $publishable,
+            'plans'             => array_values( $plans ),
+        );
+    }
+
+    public function rest_create_stripe_intent( WP_REST_Request $request ) {
+        $plan    = sanitize_key( $request->get_param( 'plan' ) );
+        $user_id = get_current_user_id();
+        if ( '' === $plan ) {
+            return new WP_Error( 'invalid_plan', __( 'A membership plan is required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+        }
+
+        $levels = Options::get_levels();
+        if ( empty( $levels[ $plan ] ) || ! is_array( $levels[ $plan ] ) ) {
+            return new WP_Error( 'unknown_plan', __( 'The requested membership plan could not be found.', 'tcnapp-connector' ), array( 'status' => 404 ) );
+        }
+
+        $general    = Options::get_general_settings();
+        $secret_key = isset( $general['stripe_secret_key'] ) ? trim( $general['stripe_secret_key'] ) : '';
+        if ( '' === $secret_key ) {
+            return new WP_Error( 'stripe_not_configured', __( 'Stripe API keys are not configured.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+        }
+
+        $amount   = isset( $levels[ $plan ]['fee'] ) ? (float) $levels[ $plan ]['fee'] : 0.0;
+        $currency = isset( $general['currency'] ) ? strtolower( $general['currency'] ) : 'usd';
+
+        if ( $amount <= 0 ) {
+            return array(
+                'plan'              => $plan,
+                'requires_payment' => false,
+            );
+        }
+
+        $intent = $this->stripe_request(
+            'POST',
+            'payment_intents',
+            array(
+                'amount'                             => (int) round( $amount * 100 ),
+                'currency'                           => sanitize_key( $currency ),
+                'description'                        => sprintf( __( 'TCN membership upgrade (%s)', 'tcnapp-connector' ), $levels[ $plan ]['name'] ?? $plan ),
+                'automatic_payment_methods[enabled]' => 'true',
+                'metadata[plan]'                     => $plan,
+                'metadata[user_id]'                  => $user_id,
+            ),
+            $secret_key
+        );
+
+        if ( is_wp_error( $intent ) ) {
+            return $intent;
+        }
+
+        return $intent;
+    }
+
+    public function rest_confirm_membership_upgrade( WP_REST_Request $request ) {
+        $plan = sanitize_key( $request->get_param( 'plan' ) );
+        if ( '' === $plan ) {
+            return new WP_Error( 'invalid_plan', __( 'A membership plan is required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+        }
+
+        $levels = Options::get_levels();
+        if ( empty( $levels[ $plan ] ) || ! is_array( $levels[ $plan ] ) ) {
+            return new WP_Error( 'unknown_plan', __( 'The requested membership plan could not be found.', 'tcnapp-connector' ), array( 'status' => 404 ) );
+        }
+
+        $general     = Options::get_general_settings();
+        $secret_key  = isset( $general['stripe_secret_key'] ) ? trim( $general['stripe_secret_key'] ) : '';
+        $expected    = isset( $levels[ $plan ]['fee'] ) ? (float) $levels[ $plan ]['fee'] : 0.0;
+        $currency    = isset( $general['currency'] ) ? strtolower( $general['currency'] ) : 'usd';
+        $intent_id   = sanitize_text_field( $request->get_param( 'payment_intent' ) );
+        $user_id     = get_current_user_id();
+
+        if ( ! $user_id ) {
+            return new WP_Error( 'rest_forbidden', __( 'Authentication required.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+        }
+
+        if ( $expected > 0 && '' === $secret_key ) {
+            return new WP_Error( 'stripe_not_configured', __( 'Stripe API keys are not configured.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+        }
+
+        if ( $expected > 0 ) {
+            if ( '' === $intent_id ) {
+                return new WP_Error( 'missing_intent', __( 'A Stripe payment intent is required for this upgrade.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            }
+
+            $intent = $this->stripe_request( 'GET', 'payment_intents/' . rawurlencode( $intent_id ), array(), $secret_key );
+            if ( is_wp_error( $intent ) ) {
+                return $intent;
+            }
+
+            $status = isset( $intent['status'] ) ? $intent['status'] : '';
+            if ( ! in_array( $status, array( 'succeeded', 'processing', 'requires_capture' ), true ) ) {
+                return new WP_Error( 'intent_incomplete', __( 'The payment intent has not completed successfully.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+            }
+
+            $amount_received = isset( $intent['amount_received'] ) ? (int) $intent['amount_received'] : null;
+            if ( null === $amount_received ) {
+                $amount_received = isset( $intent['amount'] ) ? (int) $intent['amount'] : 0;
+            }
+
+            $expected_minor = (int) round( $expected * 100 );
+            if ( $expected_minor > 0 && $amount_received < $expected_minor ) {
+                return new WP_Error( 'intent_amount_mismatch', __( 'The payment amount did not match the membership fee.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+            }
+
+            if ( ! empty( $intent['currency'] ) && sanitize_key( $intent['currency'] ) !== sanitize_key( $currency ) ) {
+                return new WP_Error( 'intent_currency_mismatch', __( 'The payment currency did not match the site configuration.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+            }
+
+            if ( ! empty( $intent['metadata']['plan'] ) && sanitize_key( $intent['metadata']['plan'] ) !== $plan ) {
+                return new WP_Error( 'intent_plan_mismatch', __( 'The payment intent does not belong to this membership plan.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+            }
+        }
+
+        $this->ensure_sponsor_assignment( $user_id );
+        $this->set_membership_level( $user_id, $plan );
+        $this->record_commissions( $user_id, 0, $plan );
+
+        return array(
+            'success' => true,
+            'level'   => $plan,
+        );
+    }
+
+    /**
+     * @return array<string, int>
+     */
+    protected function get_membership_products(): array {
+        if ( ! function_exists( 'wc_get_products' ) ) {
+            return array();
+        }
+
+        $products = wc_get_products(
+            array(
+                'limit'      => -1,
+                'status'     => array( 'publish', 'pending', 'draft' ),
+                'meta_query' => array(
+                    array(
+                        'key'     => '_tcn_membership_level',
+                        'compare' => 'EXISTS',
+                    ),
+                ),
+                'return'     => 'ids',
+            )
+        );
+
+        if ( empty( $products ) ) {
+            return array();
+        }
+
+        $mapping = array();
+        foreach ( $products as $product_id ) {
+            $level = get_post_meta( $product_id, '_tcn_membership_level', true );
+            if ( ! $level ) {
+                continue;
+            }
+
+            $level = sanitize_key( (string) $level );
+            if ( '' === $level ) {
+                continue;
+            }
+
+            if ( ! isset( $mapping[ $level ] ) ) {
+                $mapping[ $level ] = (int) $product_id;
+            }
+        }
+
+        return $mapping;
+    }
+
+    /**
+     * Perform a REST request to the Stripe API.
+     *
+     * @param string               $method HTTP method.
+     * @param string               $path   Endpoint path relative to /v1/.
+     * @param array<string, mixed> $body   Request body.
+     * @param string               $secret Secret key.
+     *
+     * @return array<string, mixed>|WP_Error
+     */
+    protected function stripe_request( string $method, string $path, array $body, string $secret ) {
+        $url = 'https://api.stripe.com/v1/' . ltrim( $path, '/' );
+
+        $args = array(
+            'method'  => strtoupper( $method ),
+            'headers' => array(
+                'Authorization' => 'Bearer ' . $secret,
+            ),
+            'timeout' => 20,
+        );
+
+        if ( ! empty( $body ) ) {
+            $args['body'] = $body;
+        }
+
+        $response = wp_remote_request( $url, $args );
+        if ( is_wp_error( $response ) ) {
+            return new WP_Error( 'stripe_request_failed', __( 'Unable to contact Stripe.', 'tcnapp-connector' ), array( 'status' => 502 ) );
+        }
+
+        $code = (int) wp_remote_retrieve_response_code( $response );
+        $data = json_decode( (string) wp_remote_retrieve_body( $response ), true );
+
+        if ( $code < 200 || $code >= 300 ) {
+            $message = isset( $data['error']['message'] ) ? $data['error']['message'] : __( 'Stripe rejected the request.', 'tcnapp-connector' );
+            return new WP_Error( 'stripe_error', $message, array( 'status' => $code ?: 500 ) );
+        }
+
+        if ( ! is_array( $data ) ) {
+            return new WP_Error( 'stripe_error', __( 'Unexpected response from Stripe.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+        }
+
+        return $data;
     }
 
     public function handle_order_completed( int $order_id ): void {

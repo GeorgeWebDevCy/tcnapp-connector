@@ -238,8 +238,10 @@ class Options {
      */
     public static function default_general_settings(): array {
         return array(
-            'currency'        => 'THB',
-            'default_sponsor' => 0,
+            'currency'               => 'THB',
+            'default_sponsor'        => 0,
+            'stripe_publishable_key' => '',
+            'stripe_secret_key'      => '',
         );
     }
 

@@ -58,6 +58,16 @@ class SettingsPage {
 
         Options::update_login_settings( $login );
 
+        $general_settings = Options::get_general_settings();
+        $general_settings['stripe_publishable_key'] = isset( $_POST['stripe_publishable_key'] )
+            ? sanitize_text_field( wp_unslash( $_POST['stripe_publishable_key'] ) )
+            : '';
+        $general_settings['stripe_secret_key'] = isset( $_POST['stripe_secret_key'] )
+            ? sanitize_text_field( wp_unslash( $_POST['stripe_secret_key'] ) )
+            : '';
+
+        Options::update_general_settings( $general_settings );
+
         do_action( 'tcn_platform_settings_saved', $modules, $login );
 
         add_settings_error( 'tcn_platform', 'settings_saved', __( 'Settings saved.', 'tcnapp-connector' ), 'updated' );
@@ -77,6 +87,8 @@ class SettingsPage {
         }
         $general        = Options::get_general_settings();
         $currency       = isset( $general['currency'] ) ? $general['currency'] : 'USD';
+        $publishable    = isset( $general['stripe_publishable_key'] ) ? $general['stripe_publishable_key'] : '';
+        $secret         = isset( $general['stripe_secret_key'] ) ? $general['stripe_secret_key'] : '';
 
         settings_errors( 'tcn_platform' );
         ?>
@@ -148,6 +160,30 @@ class SettingsPage {
                             </th>
                             <td>
                                 <input type="number" min="60" step="60" id="rate_limit_window" name="rate_limit_window" value="<?php echo esc_attr( $login_settings['rate_limit_window'] ); ?>" />
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <h2><?php esc_html_e( 'Mobile Payments', 'tcnapp-connector' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Provide your Stripe API keys so the mobile app can create payment intents during membership upgrades.', 'tcnapp-connector' ); ?></p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <tr>
+                            <th scope="row">
+                                <label for="stripe_publishable_key"><?php esc_html_e( 'Stripe Publishable Key', 'tcnapp-connector' ); ?></label>
+                            </th>
+                            <td>
+                                <input type="text" id="stripe_publishable_key" name="stripe_publishable_key" class="regular-text" value="<?php echo esc_attr( $publishable ); ?>" placeholder="pk_live_..." />
+                            </td>
+                        </tr>
+                        <tr>
+                            <th scope="row">
+                                <label for="stripe_secret_key"><?php esc_html_e( 'Stripe Secret Key', 'tcnapp-connector' ); ?></label>
+                            </th>
+                            <td>
+                                <input type="password" id="stripe_secret_key" name="stripe_secret_key" class="regular-text" value="<?php echo esc_attr( $secret ); ?>" placeholder="sk_live_..." />
+                                <p class="description"><?php esc_html_e( 'Stored securely in WordPress and used server-side to talk to Stripe.', 'tcnapp-connector' ); ?></p>
                             </td>
                         </tr>
                     </tbody>
