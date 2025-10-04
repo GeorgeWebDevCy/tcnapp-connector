@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.22
+- Maintenance release to bump the plugin version for distribution.
+
 ### 0.3.21
 - Maintenance release to bump the plugin version for distribution.
 
