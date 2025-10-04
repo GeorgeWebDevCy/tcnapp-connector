@@ -78,6 +78,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.4
+- Ensure the membership product seeder only creates Blue/Gold/Platinum/Black tiers even if legacy configuration data contains stray levels.
+
 ### 0.3.3
 - Prevent a fatal error on the admin settings screen when membership level option data is unexpectedly stored as strings.
 
