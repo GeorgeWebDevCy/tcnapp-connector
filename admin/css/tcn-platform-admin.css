@@ -67,6 +67,13 @@
 .tcn-platform-log-table td,
 .tcn-platform-log-table th {
     vertical-align: top;
+    word-break: break-word;
+    overflow-wrap: anywhere;
+}
+
+.tcn-platform-log-table.nowrap td,
+.tcn-platform-log-table.nowrap th {
+    white-space: normal !important;
 }
 
 .tcn-platform-log-details {
@@ -79,14 +86,14 @@
 
 .tcn-platform-log-detail-row {
     display: grid;
-    grid-template-columns: 160px 1fr;
+    grid-template-columns: minmax(140px, 200px) minmax(0, 1fr);
     gap: 4px 16px;
     padding: 6px 0;
     border-bottom: 1px solid #e2e8f0;
 }
 
 .tcn-platform-log-details.is-nested .tcn-platform-log-detail-row {
-    grid-template-columns: 140px 1fr;
+    grid-template-columns: minmax(120px, 180px) minmax(0, 1fr);
     padding: 4px 0;
 }
 
@@ -188,14 +195,31 @@
 
 .tcn-platform-log-table-wrapper {
     margin-top: 1.5rem;
+    overflow-x: auto;
 }
 
 .tcn-platform-log-table.dataTable {
     width: 100% !important;
 }
 
-.tcn-platform-log-table tbody td {
-    word-break: break-word;
+.tcn-platform-log-table thead th.tcn-platform-log-col-time,
+.tcn-platform-log-table tbody td.tcn-platform-log-col-time {
+    width: 140px;
+}
+
+.tcn-platform-log-table thead th.tcn-platform-log-col-source,
+.tcn-platform-log-table tbody td.tcn-platform-log-col-source {
+    width: 130px;
+}
+
+.tcn-platform-log-table thead th.tcn-platform-log-col-message,
+.tcn-platform-log-table tbody td.tcn-platform-log-col-message {
+    width: 240px;
+}
+
+.tcn-platform-log-table thead th.tcn-platform-log-col-details,
+.tcn-platform-log-table tbody td.tcn-platform-log-col-details {
+    min-width: 260px;
 }
 
 .tcn-platform-log-controls,

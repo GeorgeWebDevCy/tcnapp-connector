@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.17
+- Wrap long Activity Log parameter values so the DataTable columns remain readable on narrow screens.
+
 ### 0.3.16
 - Refresh the Activity Log UI with a responsive DataTable that adds instant search, pagination, and filtering while keeping entries easy to scan on any screen size.
 

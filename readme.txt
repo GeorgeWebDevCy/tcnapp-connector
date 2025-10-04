@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.16
+Stable tag: 0.3.17
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -61,6 +61,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.17 =
+* Fix: Ensure long log parameters wrap within the Activity Log DataTable so columns remain readable on smaller screens.
+
 = 0.3.16 =
 * Upgraded the Activity Log with a responsive DataTable UI that supports instant searching, filtering, pagination, and clearer sorting of timestamped events.
 
