@@ -66,7 +66,28 @@ class SettingsPage {
             ? sanitize_text_field( wp_unslash( $_POST['stripe_secret_key'] ) )
             : '';
 
+        $membership_products = array();
+        if ( isset( $_POST['membership_products'] ) && is_array( $_POST['membership_products'] ) ) {
+            $raw_products = wp_unslash( $_POST['membership_products'] );
+
+            foreach ( Options::get_levels() as $level ) {
+                if ( empty( $level['slug'] ) ) {
+                    continue;
+                }
+
+                $slug       = sanitize_key( (string) $level['slug'] );
+                $product_id = isset( $raw_products[ $slug ] ) ? absint( $raw_products[ $slug ] ) : 0;
+
+                if ( $slug && $product_id > 0 ) {
+                    $membership_products[ $slug ] = $product_id;
+                }
+            }
+        }
+
+        $general_settings['membership_products'] = $membership_products;
+
         Options::update_general_settings( $general_settings );
+        $this->sync_membership_product_meta( $membership_products );
 
         do_action( 'tcn_platform_settings_saved', $modules, $login );
 
@@ -81,6 +102,7 @@ class SettingsPage {
         $modules        = $this->modules->all();
         $login_settings = Options::get_login_settings();
         $levels         = Options::get_levels();
+        $product_map    = Options::get_membership_product_map();
 
         if ( ! is_array( $levels ) ) {
             $levels = array();
@@ -89,6 +111,7 @@ class SettingsPage {
         $currency       = isset( $general['currency'] ) ? $general['currency'] : 'USD';
         $publishable    = isset( $general['stripe_publishable_key'] ) ? $general['stripe_publishable_key'] : '';
         $secret         = isset( $general['stripe_secret_key'] ) ? $general['stripe_secret_key'] : '';
+        $product_options = $this->get_membership_product_options();
 
         settings_errors( 'tcn_platform' );
         ?>
@@ -189,6 +212,54 @@ class SettingsPage {
                     </tbody>
                 </table>
 
+                <h2><?php esc_html_e( 'Membership Products', 'tcnapp-connector' ); ?></h2>
+                <p class="description"><?php esc_html_e( 'Select the WooCommerce products that correspond to each membership plan. These mappings ensure upgrades keep working even if product titles or slugs change.', 'tcnapp-connector' ); ?></p>
+                <table class="form-table" role="presentation">
+                    <tbody>
+                        <?php if ( empty( $product_options ) && ! function_exists( 'wc_get_products' ) ) : ?>
+                            <tr>
+                                <th scope="row"><?php esc_html_e( 'Membership Products', 'tcnapp-connector' ); ?></th>
+                                <td>
+                                    <p class="description"><?php esc_html_e( 'Install and activate WooCommerce to assign products to membership levels.', 'tcnapp-connector' ); ?></p>
+                                </td>
+                            </tr>
+                        <?php else : ?>
+                            <?php foreach ( $levels as $level ) :
+                                if ( empty( $level['slug'] ) ) {
+                                    continue;
+                                }
+
+                                $slug      = sanitize_key( (string) $level['slug'] );
+                                $selected  = isset( $product_map[ $slug ] ) ? (int) $product_map[ $slug ] : 0;
+                                $label     = isset( $level['name'] ) ? (string) $level['name'] : $slug;
+                                $options   = $product_options;
+
+                                if ( $selected > 0 && ! isset( $options[ $selected ] ) ) {
+                                    /* translators: %d: WooCommerce product ID */
+                                    $options[ $selected ] = sprintf( __( 'Product #%d (not found)', 'tcnapp-connector' ), $selected );
+                                }
+                                ?>
+                                <tr>
+                                    <th scope="row">
+                                        <label for="membership_products_<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $label ); ?></label>
+                                    </th>
+                                    <td>
+                                        <?php if ( empty( $options ) ) : ?>
+                                            <p class="description"><?php esc_html_e( 'Create WooCommerce products to enable membership mapping.', 'tcnapp-connector' ); ?></p>
+                                        <?php else : ?>
+                                            <select id="membership_products_<?php echo esc_attr( $slug ); ?>" name="membership_products[<?php echo esc_attr( $slug ); ?>]">
+                                                <?php foreach ( $options as $product_id => $product_label ) : ?>
+                                                    <option value="<?php echo esc_attr( $product_id ); ?>" <?php selected( $selected, $product_id ); ?>><?php echo esc_html( $product_label ); ?></option>
+                                                <?php endforeach; ?>
+                                            </select>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
+
                 <?php submit_button(); ?>
             </form>
 
@@ -247,5 +318,103 @@ class SettingsPage {
         }
 
         return sprintf( '%s %.2f', $currency, (float) $amount );
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function get_membership_product_options(): array {
+        if ( ! function_exists( 'wc_get_products' ) ) {
+            return array();
+        }
+
+        $products = wc_get_products(
+            array(
+                'limit'  => -1,
+                'status' => array( 'publish', 'pending', 'draft' ),
+                'return'  => 'objects',
+                'orderby' => 'title',
+                'order'   => 'ASC',
+            )
+        );
+
+        if ( empty( $products ) ) {
+            return array();
+        }
+
+        $options = array( 0 => __( '— Select —', 'tcnapp-connector' ) );
+
+        foreach ( $products as $product ) {
+            $options[ $product->get_id() ] = sprintf(
+                /* translators: 1: WooCommerce product name, 2: product ID */
+                __( '%1$s (#%2$d)', 'tcnapp-connector' ),
+                $product->get_name(),
+                $product->get_id()
+            );
+        }
+
+        return $options;
+    }
+
+    /**
+     * Synchronize the `_tcn_membership_level` product meta with the saved mappings.
+     *
+     * @param array<string, int> $mapping
+     */
+    protected function sync_membership_product_meta( array $mapping ): void {
+        if ( ! function_exists( 'wc_get_products' ) ) {
+            return;
+        }
+
+        $normalized = array();
+        foreach ( $mapping as $slug => $product_id ) {
+            $slug       = sanitize_key( (string) $slug );
+            $product_id = (int) $product_id;
+
+            if ( '' === $slug || $product_id <= 0 ) {
+                continue;
+            }
+
+            $normalized[ $slug ] = $product_id;
+        }
+
+        $reverse = array_flip( $normalized );
+
+        $existing_products = wc_get_products(
+            array(
+                'limit'      => -1,
+                'status'     => array( 'publish', 'pending', 'draft' ),
+                'meta_query' => array(
+                    array(
+                        'key'     => '_tcn_membership_level',
+                        'compare' => 'EXISTS',
+                    ),
+                ),
+                'return'     => 'ids',
+            )
+        );
+
+        if ( ! empty( $existing_products ) ) {
+            foreach ( $existing_products as $product_id ) {
+                $product_id = (int) $product_id;
+                $assigned   = get_post_meta( $product_id, '_tcn_membership_level', true );
+
+                if ( isset( $reverse[ $product_id ] ) ) {
+                    $slug = $reverse[ $product_id ];
+
+                    if ( $assigned !== $slug ) {
+                        update_post_meta( $product_id, '_tcn_membership_level', $slug );
+                    }
+
+                    continue;
+                }
+
+                delete_post_meta( $product_id, '_tcn_membership_level' );
+            }
+        }
+
+        foreach ( $normalized as $slug => $product_id ) {
+            update_post_meta( $product_id, '_tcn_membership_level', $slug );
+        }
     }
 }
