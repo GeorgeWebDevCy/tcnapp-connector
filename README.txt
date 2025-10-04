@@ -1,5 +1,5 @@
 === Plugin Name ===
-Contributors: (this should be a list of wordpress.org userid's)
+Contributors: orionaselite
 Donate link: https://www.georgenicolaou.me/
 Tags: comments, spam
 Requires at least: 3.0.1
