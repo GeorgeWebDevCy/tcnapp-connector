@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.29
+- Lock the Activity Log and API Tester admin pages behind a non-public password challenge that expires every 24 hours per administrator session.
+
 ### 0.3.28
 - Normalise WooCommerce-derived membership fees so THB prices retain the expected zeros when thousand separators are configured.
 
