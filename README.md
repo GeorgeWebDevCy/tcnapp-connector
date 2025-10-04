@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.34
+- Prevent a fatal error on the settings screen when WooCommerce is unavailable by guarding membership product status lookups.
+
 ### 0.3.33
 - Fix the membership product dropdown to honour every registered WooCommerce status so private or custom-state products appear instead of showing the "create products" warning.
 
