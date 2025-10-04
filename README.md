@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.36
+- Polish every admin screen with elevated cards, section panels, and richer typography so settings, logs, and the API tester feel cohesive and easier to scan.
+
 ### 0.3.35
 - Fall back to a direct WordPress product lookup when WooCommerce's product helper returns nothing so membership mapping always lists existing catalogue items.
 
