@@ -6,6 +6,7 @@ use TCN\Platform\Admin\SettingsPage;
 use TCN\Platform\Auth\PasswordLoginService;
 use TCN\Platform\Membership\MembershipModule;
 use TCN\Platform\Support\Modules;
+use TCN\Platform\Support\Updater;
 
 class Plugin {
     /**
@@ -41,6 +42,7 @@ class Plugin {
 
     protected function register_services(): void {
         $this->services[] = new MembershipModule( $this->modules );
+        $this->services[] = new Updater();
 
         if ( $this->modules->is_enabled( Modules::MODULE_AUTH_LOGIN ) ) {
             $this->services[] = new PasswordLoginService();
