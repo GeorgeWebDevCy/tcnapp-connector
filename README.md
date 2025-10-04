@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.25
+- Ensure the membership plans endpoint returns the correct WooCommerce product IDs by falling back to the official product slugs for each tier.
+
 ### 0.3.24
 - Add an exhaustive reference manual that documents every public class method and REST endpoint, including WooCommerce routes, with example payloads tailored for the built-in API tester.
 - Expand the admin API tester presets so every endpoint can be exercised without leaving the dashboard.
