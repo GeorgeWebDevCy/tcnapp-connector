@@ -69,6 +69,10 @@ class SettingsPage {
         $modules        = $this->modules->all();
         $login_settings = Options::get_login_settings();
         $levels         = Options::get_levels();
+
+        if ( ! is_array( $levels ) ) {
+            $levels = array();
+        }
         $general        = Options::get_general_settings();
         $currency       = isset( $general['currency'] ) ? $general['currency'] : 'USD';
 
@@ -162,11 +166,30 @@ class SettingsPage {
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ( $levels as $level ) : ?>
+                        <?php
+                        foreach ( $levels as $level ) :
+                            if ( ! is_array( $level ) ) {
+                                $level = array( 'name' => (string) $level );
+                            }
+
+                            $level = wp_parse_args(
+                                $level,
+                                array(
+                                    'name'               => '',
+                                    'benefits'           => array(),
+                                    'fee'                => 0,
+                                    'commission_direct'  => 0,
+                                    'commission_passive' => 0,
+                                )
+                            );
+
+                            $benefits = array_filter( (array) $level['benefits'], 'strlen' );
+                            $benefits = array_map( 'wp_strip_all_tags', $benefits );
+                        ?>
                             <tr>
                                 <td>
                                     <strong><?php echo esc_html( $level['name'] ); ?></strong><br />
-                                    <small><?php echo esc_html( implode( ' • ', array_map( 'wp_strip_all_tags', (array) $level['benefits'] ) ) ); ?></small>
+                                    <small><?php echo esc_html( implode( ' • ', $benefits ) ); ?></small>
                                 </td>
                                 <td><?php echo esc_html( $this->format_amount( $level['fee'], $currency ) ); ?></td>
                                 <td><?php echo esc_html( $this->format_amount( $level['commission_direct'], $currency ) ); ?></td>
