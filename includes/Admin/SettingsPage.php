@@ -122,9 +122,12 @@ class SettingsPage {
         settings_errors( 'tcn_platform' );
         ?>
         <div class="wrap tcn-platform-settings">
-            <h1><?php esc_html_e( 'TCN Platform', 'tcnapp-connector' ); ?></h1>
+            <div class="tcn-platform-page-intro">
+                <h1><?php esc_html_e( 'TCN Platform', 'tcnapp-connector' ); ?></h1>
+                <p class="description tcn-platform-page-subtitle"><?php esc_html_e( 'Tune the platform modules, membership tiers, and integrations powering the TCN mobile experience.', 'tcnapp-connector' ); ?></p>
+            </div>
 
-            <form method="post">
+            <form method="post" class="tcn-platform-panel">
                 <?php wp_nonce_field( 'tcn_platform_settings', 'tcn_platform_settings_nonce' ); ?>
 
                 <div class="tcn-platform-card-grid">
@@ -143,61 +146,69 @@ class SettingsPage {
                     </div>
                 </div>
 
-                <h2><?php esc_html_e( 'Password Login API Settings', 'tcnapp-connector' ); ?></h2>
-                <table class="form-table" role="presentation">
-                    <tbody>
-                        <tr>
-                            <th scope="row">
-                                <label for="allowed_origin"><?php esc_html_e( 'Allowed CORS Origin', 'tcnapp-connector' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="url" id="allowed_origin" name="allowed_origin" class="regular-text" value="<?php echo esc_attr( $login_settings['allowed_origin'] ); ?>" placeholder="https://app.example.com" />
-                                <p class="description"><?php esc_html_e( 'Leave blank to restrict requests to the WordPress origin.', 'tcnapp-connector' ); ?></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="allow_dev_http"><?php esc_html_e( 'Allow HTTP During Development', 'tcnapp-connector' ); ?></label>
-                            </th>
-                            <td>
-                                <label>
-                                    <input type="checkbox" id="allow_dev_http" name="allow_dev_http" value="1" <?php checked( ! empty( $login_settings['allow_dev_http'] ) ); ?> />
-                                    <?php esc_html_e( 'Permit non-HTTPS requests when WP_DEBUG is enabled.', 'tcnapp-connector' ); ?>
-                                </label>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="token_lifetime"><?php esc_html_e( 'Login Token Lifetime (seconds)', 'tcnapp-connector' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="number" min="60" step="60" id="token_lifetime" name="token_lifetime" value="<?php echo esc_attr( $login_settings['token_lifetime'] ); ?>" />
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="rate_limit"><?php esc_html_e( 'Rate Limit Attempts', 'tcnapp-connector' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="number" min="3" id="rate_limit" name="rate_limit" value="<?php echo esc_attr( $login_settings['rate_limit'] ); ?>" />
-                                <p class="description"><?php esc_html_e( 'Maximum attempts allowed per window per user/IP before temporarily blocking requests.', 'tcnapp-connector' ); ?></p>
-                            </td>
-                        </tr>
-                        <tr>
-                            <th scope="row">
-                                <label for="rate_limit_window"><?php esc_html_e( 'Rate Limit Window (seconds)', 'tcnapp-connector' ); ?></label>
-                            </th>
-                            <td>
-                                <input type="number" min="60" step="60" id="rate_limit_window" name="rate_limit_window" value="<?php echo esc_attr( $login_settings['rate_limit_window'] ); ?>" />
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                <section class="tcn-platform-section">
+                    <div class="tcn-platform-section-header">
+                        <h2><?php esc_html_e( 'Password Login API Settings', 'tcnapp-connector' ); ?></h2>
+                        <p class="tcn-platform-section-description"><?php esc_html_e( 'Configure authentication behaviour for the Password Login API module.', 'tcnapp-connector' ); ?></p>
+                    </div>
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <tr>
+                                <th scope="row">
+                                    <label for="allowed_origin"><?php esc_html_e( 'Allowed CORS Origin', 'tcnapp-connector' ); ?></label>
+                                </th>
+                                <td>
+                                    <input type="url" id="allowed_origin" name="allowed_origin" class="regular-text" value="<?php echo esc_attr( $login_settings['allowed_origin'] ); ?>" placeholder="https://app.example.com" />
+                                    <p class="description"><?php esc_html_e( 'Leave blank to restrict requests to the WordPress origin.', 'tcnapp-connector' ); ?></p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="allow_dev_http"><?php esc_html_e( 'Allow HTTP During Development', 'tcnapp-connector' ); ?></label>
+                                </th>
+                                <td>
+                                    <label>
+                                        <input type="checkbox" id="allow_dev_http" name="allow_dev_http" value="1" <?php checked( ! empty( $login_settings['allow_dev_http'] ) ); ?> />
+                                        <?php esc_html_e( 'Permit non-HTTPS requests when WP_DEBUG is enabled.', 'tcnapp-connector' ); ?>
+                                    </label>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="token_lifetime"><?php esc_html_e( 'Login Token Lifetime (seconds)', 'tcnapp-connector' ); ?></label>
+                                </th>
+                                <td>
+                                    <input type="number" min="60" step="60" id="token_lifetime" name="token_lifetime" value="<?php echo esc_attr( $login_settings['token_lifetime'] ); ?>" />
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="rate_limit"><?php esc_html_e( 'Rate Limit Attempts', 'tcnapp-connector' ); ?></label>
+                                </th>
+                                <td>
+                                    <input type="number" min="3" id="rate_limit" name="rate_limit" value="<?php echo esc_attr( $login_settings['rate_limit'] ); ?>" />
+                                    <p class="description"><?php esc_html_e( 'Maximum attempts allowed per window per user/IP before temporarily blocking requests.', 'tcnapp-connector' ); ?></p>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th scope="row">
+                                    <label for="rate_limit_window"><?php esc_html_e( 'Rate Limit Window (seconds)', 'tcnapp-connector' ); ?></label>
+                                </th>
+                                <td>
+                                    <input type="number" min="60" step="60" id="rate_limit_window" name="rate_limit_window" value="<?php echo esc_attr( $login_settings['rate_limit_window'] ); ?>" />
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </section>
 
-                <h2><?php esc_html_e( 'Mobile Payments', 'tcnapp-connector' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Provide your Stripe API keys so the mobile app can create payment intents during membership upgrades.', 'tcnapp-connector' ); ?></p>
-                <table class="form-table" role="presentation">
-                    <tbody>
+                <section class="tcn-platform-section">
+                    <div class="tcn-platform-section-header">
+                        <h2><?php esc_html_e( 'Mobile Payments', 'tcnapp-connector' ); ?></h2>
+                        <p class="description tcn-platform-section-description"><?php esc_html_e( 'Provide your Stripe API keys so the mobile app can create payment intents during membership upgrades.', 'tcnapp-connector' ); ?></p>
+                    </div>
+                    <table class="form-table" role="presentation">
+                        <tbody>
                         <tr>
                             <th scope="row">
                                 <label for="stripe_publishable_key"><?php esc_html_e( 'Stripe Publishable Key', 'tcnapp-connector' ); ?></label>
@@ -217,97 +228,111 @@ class SettingsPage {
                         </tr>
                     </tbody>
                 </table>
+                </section>
 
-                <h2><?php esc_html_e( 'Membership Products', 'tcnapp-connector' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Select the WooCommerce products that correspond to each membership plan. These mappings ensure upgrades keep working even if product titles or slugs change.', 'tcnapp-connector' ); ?></p>
-                <table class="form-table" role="presentation">
-                    <tbody>
-                        <?php if ( empty( $product_options ) && ! function_exists( 'wc_get_products' ) ) : ?>
-                            <tr>
-                                <th scope="row"><?php esc_html_e( 'Membership Products', 'tcnapp-connector' ); ?></th>
-                                <td>
-                                    <p class="description"><?php esc_html_e( 'Install and activate WooCommerce to assign products to membership levels.', 'tcnapp-connector' ); ?></p>
-                                </td>
-                            </tr>
-                        <?php else : ?>
+                <section class="tcn-platform-section">
+                    <div class="tcn-platform-section-header">
+                        <h2><?php esc_html_e( 'Membership Products', 'tcnapp-connector' ); ?></h2>
+                        <p class="description tcn-platform-section-description"><?php esc_html_e( 'Select the WooCommerce products that correspond to each membership plan. These mappings ensure upgrades keep working even if product titles or slugs change.', 'tcnapp-connector' ); ?></p>
+                    </div>
+                    <table class="form-table" role="presentation">
+                        <tbody>
+                            <?php if ( empty( $product_options ) && ! function_exists( 'wc_get_products' ) ) : ?>
+                                <tr>
+                                    <th scope="row"><?php esc_html_e( 'Membership Products', 'tcnapp-connector' ); ?></th>
+                                    <td>
+                                        <p class="description"><?php esc_html_e( 'Install and activate WooCommerce to assign products to membership levels.', 'tcnapp-connector' ); ?></p>
+                                    </td>
+                                </tr>
+                            <?php else : ?>
+                                <?php foreach ( $levels as $level ) :
+                                    if ( empty( $level['slug'] ) ) {
+                                        continue;
+                                    }
+
+                                    $slug      = sanitize_key( (string) $level['slug'] );
+                                    $selected  = isset( $product_map[ $slug ] ) ? (int) $product_map[ $slug ] : 0;
+                                    $label     = isset( $level['name'] ) ? (string) $level['name'] : $slug;
+                                    $options   = $product_options;
+
+                                    if ( $selected > 0 && ! isset( $options[ $selected ] ) ) {
+                                        /* translators: %d: WooCommerce product ID */
+                                        $options[ $selected ] = sprintf( __( 'Product #%d (not found)', 'tcnapp-connector' ), $selected );
+                                    }
+                                    ?>
+                                    <tr>
+                                        <th scope="row">
+                                            <label for="membership_products_<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $label ); ?></label>
+                                        </th>
+                                        <td>
+                                            <?php if ( empty( $options ) ) : ?>
+                                                <p class="description"><?php esc_html_e( 'Create WooCommerce products to enable membership mapping.', 'tcnapp-connector' ); ?></p>
+                                            <?php else : ?>
+                                                <select id="membership_products_<?php echo esc_attr( $slug ); ?>" name="membership_products[<?php echo esc_attr( $slug ); ?>]">
+                                                    <?php foreach ( $options as $product_id => $product_label ) : ?>
+                                                        <option value="<?php echo esc_attr( $product_id ); ?>" <?php selected( $selected, $product_id ); ?>><?php echo esc_html( $product_label ); ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            <?php endif; ?>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </section>
+
+                <section class="tcn-platform-section">
+                    <div class="tcn-platform-section-header">
+                        <h2><?php esc_html_e( 'Membership Commissions', 'tcnapp-connector' ); ?></h2>
+                        <p class="description tcn-platform-section-description"><?php esc_html_e( 'Adjust the direct and passive commission amounts for each tier. These settings drive the payouts recorded when members recruit their network.', 'tcnapp-connector' ); ?></p>
+                    </div>
+                    <table class="form-table" role="presentation">
+                        <tbody>
                             <?php foreach ( $levels as $level ) :
                                 if ( empty( $level['slug'] ) ) {
                                     continue;
                                 }
 
-                                $slug      = sanitize_key( (string) $level['slug'] );
-                                $selected  = isset( $product_map[ $slug ] ) ? (int) $product_map[ $slug ] : 0;
-                                $label     = isset( $level['name'] ) ? (string) $level['name'] : $slug;
-                                $options   = $product_options;
-
-                                if ( $selected > 0 && ! isset( $options[ $selected ] ) ) {
-                                    /* translators: %d: WooCommerce product ID */
-                                    $options[ $selected ] = sprintf( __( 'Product #%d (not found)', 'tcnapp-connector' ), $selected );
-                                }
-                                ?>
-                                <tr>
-                                    <th scope="row">
-                                        <label for="membership_products_<?php echo esc_attr( $slug ); ?>"><?php echo esc_html( $label ); ?></label>
-                                    </th>
-                                    <td>
-                                        <?php if ( empty( $options ) ) : ?>
-                                            <p class="description"><?php esc_html_e( 'Create WooCommerce products to enable membership mapping.', 'tcnapp-connector' ); ?></p>
-                                        <?php else : ?>
-                                            <select id="membership_products_<?php echo esc_attr( $slug ); ?>" name="membership_products[<?php echo esc_attr( $slug ); ?>]">
-                                                <?php foreach ( $options as $product_id => $product_label ) : ?>
-                                                    <option value="<?php echo esc_attr( $product_id ); ?>" <?php selected( $selected, $product_id ); ?>><?php echo esc_html( $product_label ); ?></option>
-                                                <?php endforeach; ?>
-                                            </select>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
+                                $slug        = sanitize_key( (string) $level['slug'] );
+                                $level_name  = isset( $level['name'] ) ? (string) $level['name'] : $slug;
+                                $direct_id   = 'membership_levels_' . $slug . '_direct';
+                                $passive_id  = 'membership_levels_' . $slug . '_passive';
+                                $direct_val  = isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0;
+                                $passive_val = isset( $level['commission_passive'] ) ? (float) $level['commission_passive'] : 0.0;
+                            ?>
+                            <tr>
+                                <th scope="row">
+                                    <span class="tcn-level-label"><?php echo esc_html( $level_name ); ?></span>
+                                </th>
+                                <td>
+                                    <fieldset>
+                                        <label for="<?php echo esc_attr( $direct_id ); ?>" class="tcn-level-field">
+                                            <?php esc_html_e( 'Direct commission', 'tcnapp-connector' ); ?>
+                                            <input type="number" min="0" step="0.01" id="<?php echo esc_attr( $direct_id ); ?>" name="membership_levels[<?php echo esc_attr( $slug ); ?>][commission_direct]" value="<?php echo esc_attr( $direct_val ); ?>" class="small-text" />
+                                        </label>
+                                        <label for="<?php echo esc_attr( $passive_id ); ?>" class="tcn-level-field">
+                                            <?php esc_html_e( 'Passive commission', 'tcnapp-connector' ); ?>
+                                            <input type="number" min="0" step="0.01" id="<?php echo esc_attr( $passive_id ); ?>" name="membership_levels[<?php echo esc_attr( $slug ); ?>][commission_passive]" value="<?php echo esc_attr( $passive_val ); ?>" class="small-text" />
+                                        </label>
+                                    </fieldset>
+                                </td>
+                            </tr>
                             <?php endforeach; ?>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
+                        </tbody>
+                    </table>
+                </section>
 
-                <h2><?php esc_html_e( 'Membership Commissions', 'tcnapp-connector' ); ?></h2>
-                <p class="description"><?php esc_html_e( 'Adjust the direct and passive commission amounts for each tier. These settings drive the payouts recorded when members recruit their network.', 'tcnapp-connector' ); ?></p>
-                <table class="form-table" role="presentation">
-                    <tbody>
-                        <?php foreach ( $levels as $level ) :
-                            if ( empty( $level['slug'] ) ) {
-                                continue;
-                            }
-
-                            $slug        = sanitize_key( (string) $level['slug'] );
-                            $level_name  = isset( $level['name'] ) ? (string) $level['name'] : $slug;
-                            $direct_id   = 'membership_levels_' . $slug . '_direct';
-                            $passive_id  = 'membership_levels_' . $slug . '_passive';
-                            $direct_val  = isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0;
-                            $passive_val = isset( $level['commission_passive'] ) ? (float) $level['commission_passive'] : 0.0;
-                        ?>
-                        <tr>
-                            <th scope="row">
-                                <span class="tcn-level-label"><?php echo esc_html( $level_name ); ?></span>
-                            </th>
-                            <td>
-                                <fieldset>
-                                    <label for="<?php echo esc_attr( $direct_id ); ?>" class="tcn-level-field">
-                                        <?php esc_html_e( 'Direct commission', 'tcnapp-connector' ); ?>
-                                        <input type="number" min="0" step="0.01" id="<?php echo esc_attr( $direct_id ); ?>" name="membership_levels[<?php echo esc_attr( $slug ); ?>][commission_direct]" value="<?php echo esc_attr( $direct_val ); ?>" class="small-text" />
-                                    </label>
-                                    <label for="<?php echo esc_attr( $passive_id ); ?>" class="tcn-level-field">
-                                        <?php esc_html_e( 'Passive commission', 'tcnapp-connector' ); ?>
-                                        <input type="number" min="0" step="0.01" id="<?php echo esc_attr( $passive_id ); ?>" name="membership_levels[<?php echo esc_attr( $slug ); ?>][commission_passive]" value="<?php echo esc_attr( $passive_val ); ?>" class="small-text" />
-                                    </label>
-                                </fieldset>
-                            </td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-
-                <?php submit_button(); ?>
+                <div class="tcn-platform-actions">
+                    <?php submit_button( __( 'Save settings', 'tcnapp-connector' ), 'primary large tcn-platform-button', 'submit', false ); ?>
+                </div>
             </form>
 
-            <div class="tcn-platform-card tcn-platform-levels">
-                <h2><?php esc_html_e( 'Membership Levels', 'tcnapp-connector' ); ?></h2>
+            <div class="tcn-platform-section tcn-platform-levels">
+                <div class="tcn-platform-section-header">
+                    <h2><?php esc_html_e( 'Membership Levels', 'tcnapp-connector' ); ?></h2>
+                    <p class="tcn-platform-section-description"><?php esc_html_e( 'Review the fees and commissions powering each tier at a glance.', 'tcnapp-connector' ); ?></p>
+                </div>
                 <table>
                     <thead>
                         <tr>

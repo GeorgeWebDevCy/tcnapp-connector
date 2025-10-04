@@ -142,10 +142,12 @@ class ApiTesterPage {
 
         ?>
         <div class="wrap tcn-platform-api-tester">
-            <h1><?php esc_html_e( 'TCN Platform API Tester', 'tcnapp-connector' ); ?></h1>
-            <p class="description">
-                <?php esc_html_e( 'Send requests to the plugin\'s REST endpoints without leaving the WordPress dashboard. Use the form below to craft a request, then review the response details.', 'tcnapp-connector' ); ?>
-            </p>
+            <div class="tcn-platform-page-intro">
+                <h1><?php esc_html_e( 'TCN Platform API Tester', 'tcnapp-connector' ); ?></h1>
+                <p class="description tcn-platform-page-subtitle">
+                    <?php esc_html_e( 'Send requests to the plugin\'s REST endpoints without leaving the WordPress dashboard. Use the form below to craft a request, then review the response details.', 'tcnapp-connector' ); ?>
+                </p>
+            </div>
 
             <?php if ( ! empty( $errors ) ) : ?>
                 <div class="notice notice-error">
@@ -157,7 +159,7 @@ class ApiTesterPage {
                 </div>
             <?php endif; ?>
 
-            <form method="post" class="tcn-platform-api-form">
+            <form method="post" class="tcn-platform-api-form tcn-platform-panel">
                 <?php wp_nonce_field( 'tcn_platform_api_tester', 'tcn_platform_api_tester_nonce' ); ?>
 
                 <div class="tcn-platform-api-grid">
@@ -195,7 +197,7 @@ class ApiTesterPage {
             </form>
 
             <?php if ( null !== $response && empty( $errors ) ) : ?>
-                <div class="tcn-platform-api-response">
+                <div class="tcn-platform-panel tcn-platform-api-response">
                     <h2><?php esc_html_e( 'Response', 'tcnapp-connector' ); ?></h2>
                     <?php if ( $response instanceof WP_Error ) : ?>
                         <div class="notice notice-error">
@@ -267,7 +269,7 @@ class ApiTesterPage {
                 </div>
             <?php endif; ?>
 
-            <div class="tcn-platform-api-examples">
+            <div class="tcn-platform-panel tcn-platform-api-examples">
                 <h2><?php esc_html_e( 'Example requests', 'tcnapp-connector' ); ?></h2>
                 <p class="description"><?php esc_html_e( 'Use these ready-made examples to explore key endpoints. Click “Load in tester” to populate the form above.', 'tcnapp-connector' ); ?></p>
                 <div class="tcn-platform-api-examples-grid">
