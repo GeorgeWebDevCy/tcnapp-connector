@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.18
+- Add a WooCommerce order creation endpoint to the REST service so external systems can register purchases directly from the API.
+
 ### 0.3.17
 - Wrap long Activity Log parameter values so the DataTable columns remain readable on narrow screens.
 
