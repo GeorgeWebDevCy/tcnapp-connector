@@ -380,10 +380,14 @@ class MembershipModule {
                 $benefits[] = wp_strip_all_tags( $benefit );
             }
 
+            $fee = isset( $level['fee'] ) ? (float) $level['fee'] : 0.0;
+
             $plan = array(
                 'id'                 => $key,
                 'name'               => isset( $level['name'] ) ? (string) $level['name'] : '',
-                'fee'                => isset( $level['fee'] ) ? (float) $level['fee'] : 0.0,
+                'fee'                => $fee,
+                'price'              => $fee,
+                'formatted_fee'      => $this->format_currency( $fee ),
                 'currency'           => $currency,
                 'benefits'           => $benefits,
                 'commission_direct'  => isset( $level['commission_direct'] ) ? (float) $level['commission_direct'] : 0.0,
@@ -391,7 +395,8 @@ class MembershipModule {
                 'product_id'         => $this->get_membership_product_id( (string) $key, $products ),
             );
 
-            $plan['requires_payment'] = $plan['fee'] > 0;
+            $plan['amount_minor']      = (int) round( $fee * 100 );
+            $plan['requires_payment'] = $fee > 0;
 
             $plans[] = $plan;
         }
