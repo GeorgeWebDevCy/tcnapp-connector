@@ -714,8 +714,7 @@ class MembershipModule {
             return;
         }
 
-        $products   = $this->get_membership_products();
-        $product_id = isset( $products['blue'] ) ? (int) $products['blue'] : 0;
+        $product_id = $this->get_membership_product_id( 'blue' );
 
         if ( $product_id <= 0 ) {
             return;
@@ -794,6 +793,46 @@ class MembershipModule {
         );
 
         update_user_meta( $user_id, '_tcn_welcome_order_id', $order->get_id() );
+    }
+
+    /**
+     * Retrieve the WooCommerce product ID associated with a membership level.
+     */
+    protected function get_membership_product_id( string $level ): int {
+        $products = $this->get_membership_products();
+
+        if ( isset( $products[ $level ] ) ) {
+            return (int) $products[ $level ];
+        }
+
+        if ( 'blue' === $level ) {
+            $fallback = $this->get_product_id_by_slug( 'blue-membership' );
+
+            if ( $fallback > 0 ) {
+                return $fallback;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Attempt to locate a product by its slug.
+     */
+    protected function get_product_id_by_slug( string $slug ): int {
+        $slug = sanitize_title( $slug );
+
+        if ( '' === $slug ) {
+            return 0;
+        }
+
+        $product = get_page_by_path( $slug, OBJECT, array( 'product' ) );
+
+        if ( $product instanceof \WP_Post ) {
+            return (int) $product->ID;
+        }
+
+        return 0;
     }
 
     protected function ensure_sponsor_assignment( int $user_id ): void {
