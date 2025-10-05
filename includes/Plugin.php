@@ -7,6 +7,7 @@ use TCN\Platform\Admin\LogPage;
 use TCN\Platform\Admin\SettingsPage;
 use TCN\Platform\Auth\PasswordLoginService;
 use TCN\Platform\Membership\MembershipModule;
+use TCN\Platform\Rest\ProfileEndpoints;
 use TCN\Platform\Rest\WooCommerceEndpoints;
 use TCN\Platform\Support\Modules;
 use TCN\Platform\Support\ActivityMonitor;
@@ -58,6 +59,8 @@ class Plugin {
         if ( function_exists( 'wc_get_customer_id_by_email' ) ) {
             $this->services[] = new WooCommerceEndpoints();
         }
+
+        $this->services[] = new ProfileEndpoints();
 
         if ( is_admin() ) {
             $this->services[] = new SettingsPage( $this->modules );
