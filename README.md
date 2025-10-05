@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.45
+- Feature: Issue week-long bearer tokens on login responses, expose a `/gn/v1/me` profile endpoint, and add a `/gn/v1/log` ingestor for mobile diagnostics.
+
 ### 0.3.44
 - Feature: Add a Download Log button that exports the complete Activity Log to a timestamped text file for offline auditing.
 
