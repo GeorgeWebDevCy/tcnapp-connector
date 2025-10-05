@@ -48,6 +48,11 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 
 - Head to **TCN Platform → Deployment Checklists** for a curated set of preflight checks and troubleshooting tips covering the Password Login API routes.
 - Each section summarises endpoint verification, HTTPS and CORS settings, bearer token expectations, avatar upload requirements, and cURL recipes you can run directly from the server.
+- Authentication quick hits captured on the checklist keep the mobile app and server aligned:
+  - Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly calls itself public.
+  - Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username and password.
+  - Ensure the authenticated account stays active and is not blocked by membership or capability plugins before issuing tokens.
+  - When Cloudflare or another proxy sits in front of the site, verify the `Authorization` header survives to PHP unchanged.
 - Quick “App” and “Plugin/Server” lists make it easy to confirm both sides of the integration before shipping builds to QA or production.
 
 ## 💼 Membership & MLM Highlights
@@ -104,7 +109,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
--### 0.3.54
+### 0.3.55
+- Expand the deployment checklist authentication guidance to reinforce bearer token expectations, token retrieval, account status checks, and proxy header forwarding.
+
+### 0.3.54
 - Refresh the deployment checklist copy to match the latest HTTPS and CORS guidance, highlighting the “Allow Dev HTTP” toggle and explicit origin recommendations.
 - Rename the HTTPS development toggle in settings to “Allow Dev HTTP” so the UI and documentation use the same label.
 

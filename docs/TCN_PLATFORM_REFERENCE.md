@@ -45,6 +45,13 @@ Every endpoint listed below has a matching preset in the tester, so you can vali
 - Errors return `WP_Error` objects with HTTP status codes (400, 401, 403, 404, 409, 429) depending on validation failures or rate limiting.
 - When `WOOCOMMERCE_CONSUMER_KEY` and `WOOCOMMERCE_CONSUMER_SECRET` constants are defined, successful responses include an `auth.woocommerce` bundle (plus the same data on the `user.woocommerce` key) exposing the consumer pair and ready-to-use Basic authorization header for subsequent bridge requests.
 
+**Authentication checklist**
+
+- Protected endpoints require an `Authorization: Bearer` token unless the route explicitly declares itself public.
+- Always retrieve fresh bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username/email and password before calling protected routes.
+- Confirm the authenticated account remains active and isn’t blocked by membership or capability plugins that would prevent logins or avatar uploads.
+- If Cloudflare or any proxy/CDN fronts the site, verify the `Authorization` header survives to PHP unchanged (check `$_SERVER['HTTP_AUTHORIZATION']` and related FastCGI vars).
+
 #### WordPress Avatar Upload Endpoint
 
 The mobile app now calls `POST /wp-json/gn/v1/profile/avatar` to upload a member's profile photo. The endpoint is expected to accept a `multipart/form-data` payload with an `avatar` field that contains the uploaded image file. A successful response must return the updated user profile in the same shape as `/wp-json/wp/v2/users/me` so the client can refresh the cached session.
