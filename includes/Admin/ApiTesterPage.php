@@ -374,6 +374,7 @@ class ApiTesterPage {
         $forgot_url       = home_url( '/wp-json/gn/v1/forgot-password' );
         $reset_url        = home_url( '/wp-json/gn/v1/reset-password' );
         $change_url       = home_url( '/wp-json/gn/v1/change-password' );
+        $avatar_url       = home_url( '/wp-json/gn/v1/profile/avatar' );
         $plans_url        = home_url( '/wp-json/gn/v1/memberships/plans' );
         $stripe_intent    = home_url( '/wp-json/gn/v1/memberships/stripe-intent' );
         $confirm_upgrade  = home_url( '/wp-json/gn/v1/memberships/confirm' );
@@ -496,6 +497,38 @@ class ApiTesterPage {
                 'response'    => wp_json_encode(
                     array(
                         'success' => true,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $avatar_url,
+                'description' => __( 'Upload a profile photo and refresh the user session payload.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires Authorization: Bearer token or authenticated cookies plus multipart/form-data with an avatar file.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-login-token',
+                        'Content-Type'  => 'multipart/form-data',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => sprintf(
+                    /* translators: %s: Example REST endpoint URL. */
+                    __( "This endpoint expects multipart/form-data. Example curl command:\n\ncurl -X POST \\\n  -H \"Authorization: Bearer paste-login-token\" \\\n  -F \"avatar=@/path/to/avatar.jpg\" \\\n  \"%s\"", 'tcnapp-connector' ),
+                    $avatar_url
+                ),
+                'response'    => wp_json_encode(
+                    array(
+                        'id'          => 123,
+                        'email'       => 'member@example.com',
+                        'name'        => 'Member Example',
+                        'first_name'  => 'Member',
+                        'last_name'   => 'Example',
+                        'avatar_urls' => array(
+                            '48' => 'https://example.com/avatar-48x48.jpg',
+                            '96' => 'https://example.com/avatar-96x96.jpg',
+                        ),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',

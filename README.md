@@ -98,9 +98,12 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.38
+- Add a `/gn/v1/profile/avatar` REST endpoint that uploads profile photos to the Media Library, stores avatar metadata, and returns the refreshed `/wp/v2/users/me` payload used by the mobile app.
+- Extend the docs and API tester presets so administrators can review the multipart upload requirements, headers, and sample responses for the avatar route.
+
 ### 0.3.37
-- Sync the WordPress.org `readme.txt` with the detailed project README so plugin documentation stays consistent across distribut
-ion channels.
+- Sync the WordPress.org `readme.txt` with the detailed project README so plugin documentation stays consistent across distribution channels.
 
 ### 0.3.36
 - Polish every admin screen with elevated cards, section panels, and richer typography so settings, logs, and the API tester feel cohesive and easier to scan.
