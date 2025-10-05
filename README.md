@@ -75,7 +75,7 @@ All endpoints live under `wp-json/gn/v1`:
 
 | Route | Method | Description |
 | ----- | ------ | ----------- |
-| `/login` | POST | Authenticate via username/email + password. Defaults to seven-day token hand-offs (`mode=token`); switch to `mode=cookie` for same-origin flows that need immediate WordPress cookies. Includes rate limiting and token locking via filters. |
+| `/login` | POST | Authenticate via username/email + password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption. Includes rate limiting and token locking via filters. |
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.49
+- Remove the cookie-based login mode so Password Login API responses always issue one-time hand-off tokens.
 
 ### 0.3.48
 - Accept long-lived Password Login API bearer tokens in addition to one-time hand-off tokens so REST requests authenticated from the mobile app can reuse the stored `api_token` without falling back to cookie flows.

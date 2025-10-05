@@ -397,7 +397,6 @@ class ApiTesterPage {
                     array(
                         'username' => 'demo@example.com',
                         'password' => 'secret-password',
-                        'mode'     => 'token',
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
