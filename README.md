@@ -44,6 +44,12 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 - The log captures calls to `gn/v1/*` and `tcn-mlm/v1/*` namespaces, redacting sensitive payload fields like passwords and tokens.
 - Activation, deactivation, settings changes, and manual log clears are also recorded so administrators can audit configuration changes.
 
+## 🧾 Deployment Checklists
+
+- Head to **TCN Platform → Deployment Checklists** for a curated set of preflight checks and troubleshooting tips covering the Password Login API routes.
+- Each section summarises endpoint verification, HTTPS and CORS settings, bearer token expectations, avatar upload requirements, and cURL recipes you can run directly from the server.
+- Quick “App” and “Plugin/Server” lists make it easy to confirm both sides of the integration before shipping builds to QA or production.
+
 ## 💼 Membership & MLM Highlights
 
 - Seeds Blue/Gold/Platinum/Black WooCommerce products on activation, maintaining pricing alignment with the mobile catalogue.
@@ -97,6 +103,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.53
+- Add a Deployment Checklists admin page that consolidates endpoint verification steps, HTTPS/CORS guidance, REST payload expectations, and server-side cURL examples for `/gn/v1/login`, `/gn/v1/change-password`, and `/gn/v1/profile/avatar`.
+- Style the new panel alongside existing admin screens so troubleshooting guides are easy to read directly inside WordPress.
 
 ### 0.3.52
 - Ensure `/change-password` resolves the authenticated user when requests rely solely on `Authorization: Bearer` tokens so mobile clients can rotate credentials without a browser cookie.
