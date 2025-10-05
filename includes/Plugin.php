@@ -11,6 +11,7 @@ use TCN\Platform\Membership\MembershipModule;
 use TCN\Platform\Rest\ProfileEndpoints;
 use TCN\Platform\Rest\WooCommerceEndpoints;
 use TCN\Platform\Support\Modules;
+use TCN\Platform\Support\Roles;
 use TCN\Platform\Support\ActivityMonitor;
 use TCN\Platform\Support\Updater;
 
@@ -31,6 +32,8 @@ class Plugin {
 
     public function boot(): void {
         add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
+        Roles::ensure_roles();
+        add_action( 'init', array( Roles::class, 'ensure_roles' ) );
         $this->register_services();
 
         foreach ( $this->services as $service ) {
