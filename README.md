@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.46
+- Enhancement: Expand the API tester presets to cover every REST endpoint, including `/gn/v1/me` and `/gn/v1/log`, so admins can prefill requests for authentication, membership, MLM, and WooCommerce bridges.
+
 ### 0.3.45
 - Feature: Issue week-long bearer tokens on login responses, expose a `/gn/v1/me` profile endpoint, and add a `/gn/v1/log` ingestor for mobile diagnostics.
 
