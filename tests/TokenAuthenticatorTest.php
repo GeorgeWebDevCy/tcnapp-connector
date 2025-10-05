@@ -67,6 +67,12 @@ final class TokenAuthenticatorTest extends TestCase {
         $result = $authenticator->authenticate_request( $request );
 
         $this->assertSame( 'WP_Error', get_class( $result ) );
+
+        foreach ( $authenticator->logged_messages as $log_entry ) {
+            if ( isset( $log_entry['message'] ) && 'authenticate_request header missing bearer token prefix' === $log_entry['message'] ) {
+                $this->fail( 'Expected Basic authorization header not to trigger bearer prefix debug log.' );
+            }
+        }
     }
 
     public function test_determine_current_user_sets_user_from_bearer_token(): void {
@@ -114,8 +120,13 @@ final class TokenAuthenticatorTest extends TestCase {
             }
 
             protected function log_debug( string $message, array $context = array() ): void {
-                // Silence debug output during tests.
+                $this->logged_messages[] = array(
+                    'message' => $message,
+                    'context' => $context,
+                );
             }
+
+            public $logged_messages = array();
         };
     }
 }

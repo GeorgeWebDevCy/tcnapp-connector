@@ -134,6 +134,12 @@ namespace {
         }
     }
 
+    if ( ! function_exists( 'is_wp_error' ) ) {
+        function is_wp_error( $thing ) {
+            return $thing instanceof WP_Error;
+        }
+    }
+
     require_once __DIR__ . '/../vendor/autoload.php';
     require_once __DIR__ . '/../includes/Auth/TokenAuthenticator.php';
 }
