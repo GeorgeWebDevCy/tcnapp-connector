@@ -18,12 +18,17 @@
 .wrap.tcn-platform-api-tester,
 .wrap.tcn-platform-logs {
     position: relative;
+    width: 100%;
     max-width: 1080px;
     padding: 32px 36px 44px;
     margin-top: 26px;
     border-radius: calc(var(--tcn-radius-lg) + 6px);
     background: linear-gradient(160deg, #eef2ff 0%, #f8fafc 30%, #ffffff 100%);
     box-shadow: var(--tcn-shadow-soft);
+}
+
+.wrap.tcn-platform-logs {
+    max-width: 1480px;
 }
 
 .wrap.tcn-platform-settings::before,

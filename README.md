@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.39
+- Expand the Activity Log canvas so the DataTable, payload badges, and context panels have room to display wide REST parameters without forcing horizontal scrolling.
+
 ### 0.3.38
 - Add a `/gn/v1/profile/avatar` REST endpoint that uploads profile photos to the Media Library, stores avatar metadata, and returns the refreshed `/wp/v2/users/me` payload used by the mobile app.
 - Extend the docs and API tester presets so administrators can review the multipart upload requirements, headers, and sample responses for the avatar route.
