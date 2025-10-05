@@ -114,31 +114,36 @@ class PasswordLoginService {
 
         $this->reset_rate_limit( $rate_context );
 
+        $response = array(
+            'success' => true,
+            'user'    => $this->prepare_user_payload( $user ),
+        );
+
         if ( 'cookie' === $mode ) {
             wp_set_current_user( $user->ID );
             wp_set_auth_cookie( $user->ID, true );
+        } else {
+            $token = $this->issue_login_token( $user->ID );
 
-            return array(
-                'success' => true,
-                'user'    => $this->prepare_user_payload( $user ),
-            );
-        }
-
-        $token = $this->issue_login_token( $user->ID );
-
-        return array(
-            'success'     => true,
-            'token'       => $token['token'],
-            'expires_in'  => $token['expires_in'],
-            'redirect'    => add_query_arg(
+            $response['token']      = $token['token'];
+            $response['expires_in'] = $token['expires_in'];
+            $response['redirect']   = add_query_arg(
                 array(
                     'action' => 'gn_token_login',
                     'token'  => rawurlencode( $token['token'] ),
                 ),
                 wp_login_url()
-            ),
-            'user'        => $this->prepare_user_payload( $user ),
-        );
+            );
+        }
+
+        $woocommerce_credentials = $this->get_woocommerce_credentials();
+        if ( ! empty( $woocommerce_credentials ) ) {
+            $response['auth'] = array(
+                'woocommerce' => $woocommerce_credentials,
+            );
+        }
+
+        return $response;
     }
 
     public function handle_register( WP_REST_Request $request ) {
@@ -351,7 +356,7 @@ class PasswordLoginService {
     }
 
     protected function prepare_user_payload( WP_User $user ): array {
-        return array(
+        $payload = array(
             'id'               => $user->ID,
             'username'         => $user->user_login,
             'email'            => $user->user_email,
@@ -360,6 +365,35 @@ class PasswordLoginService {
             'last_name'        => $user->last_name,
             'membership_level' => get_user_meta( $user->ID, '_tcn_membership_level', true ),
             'sponsor_id'       => (int) get_user_meta( $user->ID, '_tcn_sponsor_id', true ),
+        );
+
+        $woocommerce_credentials = $this->get_woocommerce_credentials();
+        if ( ! empty( $woocommerce_credentials ) ) {
+            $payload['woocommerce'] = $woocommerce_credentials;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Retrieve WooCommerce REST API credentials exposed via constants.
+     */
+    protected function get_woocommerce_credentials(): array {
+        if ( ! defined( 'WOOCOMMERCE_CONSUMER_KEY' ) || ! defined( 'WOOCOMMERCE_CONSUMER_SECRET' ) ) {
+            return array();
+        }
+
+        $key    = trim( (string) WOOCOMMERCE_CONSUMER_KEY );
+        $secret = trim( (string) WOOCOMMERCE_CONSUMER_SECRET );
+
+        if ( '' === $key || '' === $secret ) {
+            return array();
+        }
+
+        return array(
+            'consumer_key'    => $key,
+            'consumer_secret' => $secret,
+            'authorization'   => 'Basic ' . base64_encode( $key . ':' . $secret ),
         );
     }
 
