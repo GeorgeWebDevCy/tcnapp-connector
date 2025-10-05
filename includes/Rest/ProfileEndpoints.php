@@ -49,17 +49,42 @@ class ProfileEndpoints {
     public function permissions_check( WP_REST_Request $request ) {
         $user_id = get_current_user_id();
 
+        $this->log_debug(
+            'permissions_check invoked',
+            array(
+                'initial_user_id'           => $user_id,
+                'has_authorization_header' => '' !== trim( (string) $request->get_header( 'authorization' ) ),
+            )
+        );
+
         if ( $user_id <= 0 ) {
             $authenticated = $this->authenticate_with_token( $request );
 
             if ( is_wp_error( $authenticated ) ) {
+                $this->log_debug(
+                    'permissions_check authentication failed',
+                    array(
+                        'error_code'    => $authenticated->get_error_code(),
+                        'error_message' => $authenticated->get_error_message(),
+                    )
+                );
+
                 return $authenticated;
             }
 
             $user_id = (int) $authenticated;
+
+            $this->log_debug(
+                'permissions_check authenticated via token',
+                array(
+                    'authenticated_user_id' => $user_id,
+                )
+            );
         }
 
         if ( $user_id <= 0 ) {
+            $this->log_debug( 'permissions_check returning unauthorized due to empty user ID' );
+
             return new WP_Error(
                 'tcn_rest_unauthorized',
                 __( 'Authentication is required to upload an avatar.', 'tcnapp-connector' ),
@@ -70,12 +95,29 @@ class ProfileEndpoints {
         $request->set_attribute( 'tcn_authenticated_user_id', $user_id );
 
         if ( current_user_can( 'upload_files' ) ) {
+            $this->log_debug(
+                'permissions_check current user can upload files',
+                array(
+                    'user_id' => $user_id,
+                )
+            );
+
             return true;
         }
 
         $target_user_id = $this->determine_target_user_id( $request, $user_id );
 
+        $this->log_debug(
+            'permissions_check evaluated target user',
+            array(
+                'request_user_id' => $user_id,
+                'target_user_id'  => $target_user_id,
+            )
+        );
+
         if ( $target_user_id !== $user_id ) {
+            $this->log_debug( 'permissions_check rejecting upload for mismatched user IDs' );
+
             return new WP_Error(
                 'tcn_rest_forbidden',
                 __( 'You can only upload an avatar for your own profile.', 'tcnapp-connector' ),
@@ -96,7 +138,17 @@ class ProfileEndpoints {
             $user_id = get_current_user_id();
         }
 
+        $this->log_debug(
+            'handle_avatar_upload invoked',
+            array(
+                'resolved_user_id' => $user_id,
+                'files_present'    => isset( $_FILES['avatar'] ),
+            )
+        );
+
         if ( $user_id <= 0 ) {
+            $this->log_debug( 'handle_avatar_upload returning unauthorized because no user ID was resolved' );
+
             return new WP_Error(
                 'tcn_rest_unauthorized',
                 __( 'Authentication is required to upload an avatar.', 'tcnapp-connector' ),
@@ -105,6 +157,8 @@ class ProfileEndpoints {
         }
 
         if ( empty( $_FILES['avatar'] ) ) {
+            $this->log_debug( 'handle_avatar_upload missing avatar file data' );
+
             return new WP_Error(
                 'tcn_avatar_missing',
                 __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
@@ -115,6 +169,13 @@ class ProfileEndpoints {
         $file = $_FILES['avatar'];
 
         if ( ! isset( $file['tmp_name'] ) || '' === $file['tmp_name'] ) {
+            $this->log_debug(
+                'handle_avatar_upload missing temporary file',
+                array(
+                    'file_keys' => array_keys( $file ),
+                )
+            );
+
             return new WP_Error(
                 'tcn_avatar_missing',
                 __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
@@ -123,6 +184,13 @@ class ProfileEndpoints {
         }
 
         if ( ! empty( $file['error'] ) && UPLOAD_ERR_OK !== (int) $file['error'] ) {
+            $this->log_debug(
+                'handle_avatar_upload received file upload error',
+                array(
+                    'file_error' => (int) $file['error'],
+                )
+            );
+
             return new WP_Error(
                 'tcn_avatar_upload_error',
                 $this->describe_upload_error( (int) $file['error'] ),
@@ -142,6 +210,13 @@ class ProfileEndpoints {
         );
 
         if ( isset( $upload['error'] ) ) {
+            $this->log_debug(
+                'handle_avatar_upload wp_handle_upload failed',
+                array(
+                    'upload_error' => $upload['error'],
+                )
+            );
+
             return new WP_Error(
                 'tcn_avatar_upload_error',
                 $upload['error'],
@@ -152,7 +227,17 @@ class ProfileEndpoints {
         $file_path = isset( $upload['file'] ) ? (string) $upload['file'] : '';
         $file_type = isset( $upload['type'] ) ? (string) $upload['type'] : '';
 
+        $this->log_debug(
+            'handle_avatar_upload processed wp_handle_upload result',
+            array(
+                'file_path_present' => ! empty( $file_path ),
+                'file_type'         => $file_type,
+            )
+        );
+
         if ( empty( $file_path ) ) {
+            $this->log_debug( 'handle_avatar_upload missing file path after upload handling' );
+
             return new WP_Error(
                 'tcn_avatar_upload_error',
                 __( 'Unable to process the uploaded file.', 'tcnapp-connector' ),
@@ -161,6 +246,13 @@ class ProfileEndpoints {
         }
 
         if ( empty( $file_type ) || 0 !== strpos( $file_type, 'image/' ) ) {
+            $this->log_debug(
+                'handle_avatar_upload rejecting non-image upload',
+                array(
+                    'file_type' => $file_type,
+                )
+            );
+
             wp_delete_file( $file_path );
 
             return new WP_Error(
@@ -181,6 +273,13 @@ class ProfileEndpoints {
         $attachment_id = wp_insert_attachment( $attachment, $file_path );
 
         if ( is_wp_error( $attachment_id ) || ! $attachment_id ) {
+            $this->log_debug(
+                'handle_avatar_upload failed to insert attachment',
+                array(
+                    'attachment_error' => is_wp_error( $attachment_id ) ? $attachment_id->get_error_message() : 'unknown',
+                )
+            );
+
             wp_delete_file( $file_path );
 
             return new WP_Error(
@@ -197,6 +296,14 @@ class ProfileEndpoints {
 
         $avatar_urls = $this->prepare_avatar_urls( $attachment_id );
 
+        $this->log_debug(
+            'handle_avatar_upload stored avatar metadata',
+            array(
+                'attachment_id' => $attachment_id,
+                'avatar_sizes'  => array_keys( $avatar_urls ),
+            )
+        );
+
         update_user_meta( $user_id, '_gn_profile_avatar_id', $attachment_id );
         update_user_meta( $user_id, '_gn_profile_avatar_urls', $avatar_urls );
         update_user_meta(
@@ -212,8 +319,24 @@ class ProfileEndpoints {
 
         $user_response = $this->prepare_user_response( $request );
         if ( is_wp_error( $user_response ) ) {
+            $this->log_debug(
+                'handle_avatar_upload failed to prepare user response',
+                array(
+                    'error_code'    => $user_response->get_error_code(),
+                    'error_message' => $user_response->get_error_message(),
+                )
+            );
+
             return $user_response;
         }
+
+        $this->log_debug(
+            'handle_avatar_upload completed successfully',
+            array(
+                'user_id'       => $user_id,
+                'attachment_id' => $attachment_id,
+            )
+        );
 
         return $user_response;
     }
@@ -361,5 +484,65 @@ class ProfileEndpoints {
         }
 
         return $fallback;
+    }
+
+    /**
+     * Write a debug log entry when WP_DEBUG is enabled.
+     */
+    protected function log_debug( string $message, array $context = array() ): void {
+        if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            return;
+        }
+
+        if ( ! empty( $context ) ) {
+            $context = $this->sanitize_context( $context );
+            $encoded = wp_json_encode( $context );
+            if ( false !== $encoded ) {
+                $message .= ' ' . $encoded;
+            }
+        }
+
+        error_log( '[TCN ProfileEndpoints] ' . $message );
+    }
+
+    /**
+     * Sanitize context data to avoid leaking sensitive information.
+     */
+    protected function sanitize_context( array $context ): array {
+        foreach ( $context as $key => $value ) {
+            if ( is_array( $value ) ) {
+                $context[ $key ] = $this->sanitize_context( $value );
+                continue;
+            }
+
+            if ( is_object( $value ) ) {
+                $context[ $key ] = get_class( $value );
+                continue;
+            }
+
+            if ( is_string( $value ) ) {
+                if ( false !== stripos( $key, 'token' ) || false !== stripos( $key, 'authorization' ) ) {
+                    $context[ $key ] = $this->mask_string( $value );
+                    continue;
+                }
+
+                if ( strlen( $value ) > 180 ) {
+                    $context[ $key ] = substr( $value, 0, 177 ) . '...';
+                }
+            }
+        }
+
+        return $context;
+    }
+
+    /**
+     * Mask a potentially sensitive string before logging.
+     */
+    protected function mask_string( string $value ): string {
+        if ( strlen( $value ) <= 8 ) {
+            return str_repeat( '*', strlen( $value ) );
+        }
+
+        return substr( $value, 0, 4 ) . '...' . substr( $value, -4 );
     }
 }
