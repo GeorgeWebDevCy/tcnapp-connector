@@ -164,7 +164,7 @@ class SettingsPage {
                             </tr>
                             <tr>
                                 <th scope="row">
-                                    <label for="allow_dev_http"><?php esc_html_e( 'Allow HTTP During Development', 'tcnapp-connector' ); ?></label>
+                                    <label for="allow_dev_http"><?php esc_html_e( 'Allow Dev HTTP', 'tcnapp-connector' ); ?></label>
                                 </th>
                                 <td>
                                     <label>

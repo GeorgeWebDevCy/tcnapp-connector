@@ -17,7 +17,7 @@ Toggle modules under **TCN Platform → Modules**. The Membership & MLM module s
 - WooCommerce 7.0+
 - PHP 7.4+
 - MySQL 5.7+ / MariaDB 10.3+
-- HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless `Allow HTTP During Development` is enabled while `WP_DEBUG` is true)
+- HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless `Allow Dev HTTP` is enabled while `WP_DEBUG` is true)
 
 ## 🚀 Installation
 
@@ -34,7 +34,7 @@ Toggle modules under **TCN Platform → Modules**. The Membership & MLM module s
 
 ### Password Login API Settings
 - **Allowed CORS Origin** – Exact origin (scheme + host + optional port) allowed to call `gn/v1` endpoints cross-origin. Leave blank to restrict to same-origin requests.
-- **Allow HTTP During Development** – Permits non-HTTPS requests when `WP_DEBUG` is true. Only enable for local development environments.
+- **Allow Dev HTTP** – Permits non-HTTPS requests when `WP_DEBUG` is true. Only enable for local development environments.
 
 These settings persist in the `gn_login_api_settings` option. A compatibility shim keeps `GN_Password_Login_API` usable for legacy code.
 
@@ -103,6 +103,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+-### 0.3.54
+- Refresh the deployment checklist copy to match the latest HTTPS and CORS guidance, highlighting the “Allow Dev HTTP” toggle and explicit origin recommendations.
+- Rename the HTTPS development toggle in settings to “Allow Dev HTTP” so the UI and documentation use the same label.
 
 ### 0.3.53
 - Add a Deployment Checklists admin page that consolidates endpoint verification steps, HTTPS/CORS guidance, REST payload expectations, and server-side cURL examples for `/gn/v1/login`, `/gn/v1/change-password`, and `/gn/v1/profile/avatar`.

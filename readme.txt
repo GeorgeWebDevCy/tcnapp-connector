@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.53
+Stable tag: 0.3.54
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,7 @@ TCN Platform unifies the WooCommerce membership/MLM engine and the GN Password L
 * WooCommerce 7.0 or later
 * PHP 7.4 or later
 * MySQL 5.7 / MariaDB 10.3 or later
-* HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless "Allow HTTP During Development" is enabled while `WP_DEBUG` is true)
+* HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless "Allow Dev HTTP" is enabled while `WP_DEBUG` is true)
 
 === Modules ===
 * **Membership & MLM (always on)** – Seeds and syncs Blue/Gold/Platinum/Black membership products, manages genealogy, promotes members based on network rules, tracks commissions, exposes `tcn-mlm/v1/*` REST endpoints, and injects dashboards into WooCommerce My Account.
@@ -37,7 +37,7 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 
 === Password Login API Settings ===
 * **Allowed CORS Origin** – Exact origin permitted to post to `gn/v1` endpoints. Leave blank to restrict to same-origin calls.
-* **Allow HTTP During Development** – Permits non-HTTPS requests when `WP_DEBUG` is true; use only on local environments. You can further customise HTTPS behaviour via the `gn_password_api_allow_dev_http` filter.
+* **Allow Dev HTTP** – Permits non-HTTPS requests when `WP_DEBUG` is true; use only on local environments. You can further customise HTTPS behaviour via the `gn_password_api_allow_dev_http` filter.
 
 == Activity Monitoring ==
 * Monitor REST activity and plugin events from **TCN Platform → Activity Log** in the WordPress admin.
@@ -93,6 +93,10 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.54 =
+* Refresh the deployment checklist language so HTTPS, CORS, and troubleshooting guidance reference the “Allow Dev HTTP” toggle and explicit origin recommendations.
+* Rename the HTTPS development toggle in settings to “Allow Dev HTTP” for consistency with the documentation.
+
 = 0.3.53 =
 * Feature: Introduce a Deployment Checklists screen under **TCN Platform** that guides administrators through verifying `/gn/v1/login`, `/gn/v1/change-password`, and `/gn/v1/profile/avatar`, tuning HTTPS/CORS, validating payloads, and running cURL smoke tests from the server.
 * Enhancement: Align the new troubleshooting cards with existing admin styling so the guidance is easy to scan inside WordPress.
