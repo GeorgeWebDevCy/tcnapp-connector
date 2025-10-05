@@ -1,6 +1,7 @@
 <?php
 namespace TCN\Platform\Auth;
 
+use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Support\Options;
 use WP_Error;
 use WP_REST_Request;
@@ -15,6 +16,15 @@ class PasswordLoginService {
      * @var array<string, mixed>
      */
     protected $settings = array();
+
+    /**
+     * @var TokenAuthenticator|null
+     */
+    protected $token_authenticator;
+
+    public function __construct( ?TokenAuthenticator $token_authenticator = null ) {
+        $this->token_authenticator = $token_authenticator;
+    }
 
     public function register(): void {
         $this->settings = Options::get_login_settings();
@@ -79,9 +89,7 @@ class PasswordLoginService {
             array(
                 'methods'             => 'POST',
                 'callback'            => array( $this, 'handle_change_password' ),
-                'permission_callback' => function () {
-                    return is_user_logged_in();
-                },
+                'permission_callback' => array( $this, 'require_login_or_token' ),
             )
         );
     }
@@ -281,6 +289,11 @@ class PasswordLoginService {
             return $https;
         }
 
+        $authenticated = $this->authenticate_with_token( $request );
+        if ( is_wp_error( $authenticated ) ) {
+            return $authenticated;
+        }
+
         $user = wp_get_current_user();
         if ( ! $user || ! $user->ID ) {
             return new WP_Error( 'gn_not_authenticated', __( 'Authentication required.', 'tcnapp-connector' ), array( 'status' => 401 ) );
@@ -304,6 +317,31 @@ class PasswordLoginService {
         do_action( 'gn_password_api_password_changed', $user->ID, $request );
 
         return array( 'success' => true );
+    }
+
+    public function require_login_or_token( WP_REST_Request $request ) {
+        $authenticated = $this->authenticate_with_token( $request );
+        if ( is_wp_error( $authenticated ) ) {
+            return $authenticated;
+        }
+
+        if ( $authenticated > 0 || is_user_logged_in() ) {
+            return true;
+        }
+
+        return new WP_Error(
+            'gn_not_authenticated',
+            __( 'Authentication required.', 'tcnapp-connector' ),
+            array( 'status' => rest_authorization_required_code() )
+        );
+    }
+
+    protected function authenticate_with_token( WP_REST_Request $request ) {
+        if ( ! $this->token_authenticator ) {
+            return 0;
+        }
+
+        return $this->token_authenticator->authenticate_request( $request );
     }
 
     public function filter_pre_serve_request( $served, $result, $request, $server ) {

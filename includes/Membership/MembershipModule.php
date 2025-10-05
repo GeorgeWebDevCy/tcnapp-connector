@@ -1,6 +1,7 @@
 <?php
 namespace TCN\Platform\Membership;
 
+use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Support\Options;
 use WP_Error;
 use WP_REST_Request;
@@ -10,10 +11,16 @@ use WP_User;
 class MembershipModule {
     const COMMISSION_TABLE = 'tcn_mlm_commissions';
 
-    public function __construct( $modules = null ) {
+    /**
+     * @var TokenAuthenticator|null
+     */
+    protected $token_authenticator;
+
+    public function __construct( $modules = null, ?TokenAuthenticator $token_authenticator = null ) {
         // The membership module is always enabled, but the constructor accepts the
         // service container argument for forward compatibility with the module
         // toggles introduced in the unified plugin.
+        $this->token_authenticator = $token_authenticator;
     }
 
     public static function activate(): void {
@@ -102,9 +109,7 @@ class MembershipModule {
             array(
                 'methods'             => 'GET',
                 'callback'            => array( $this, 'rest_get_member_profile' ),
-                'permission_callback' => function () {
-                    return is_user_logged_in();
-                },
+                'permission_callback' => array( $this, 'rest_require_login' ),
             )
         );
 
@@ -114,9 +119,7 @@ class MembershipModule {
             array(
                 'methods'             => 'GET',
                 'callback'            => array( $this, 'rest_get_genealogy' ),
-                'permission_callback' => function () {
-                    return is_user_logged_in();
-                },
+                'permission_callback' => array( $this, 'rest_require_login' ),
             )
         );
 
@@ -126,9 +129,7 @@ class MembershipModule {
             array(
                 'methods'             => 'GET',
                 'callback'            => array( $this, 'rest_get_commissions' ),
-                'permission_callback' => function () {
-                    return is_user_logged_in();
-                },
+                'permission_callback' => array( $this, 'rest_require_login' ),
             )
         );
 
@@ -354,8 +355,29 @@ class MembershipModule {
         );
     }
 
-    public function rest_require_login(): bool {
-        return is_user_logged_in();
+    public function rest_require_login( WP_REST_Request $request ) {
+        $authenticated = $this->authenticate_with_token( $request );
+        if ( is_wp_error( $authenticated ) ) {
+            return $authenticated;
+        }
+
+        if ( $authenticated > 0 || is_user_logged_in() ) {
+            return true;
+        }
+
+        return new WP_Error(
+            'tcn_rest_unauthorized',
+            __( 'Authentication is required to access this resource.', 'tcnapp-connector' ),
+            array( 'status' => rest_authorization_required_code() )
+        );
+    }
+
+    protected function authenticate_with_token( WP_REST_Request $request ) {
+        if ( ! $this->token_authenticator ) {
+            return 0;
+        }
+
+        return $this->token_authenticator->authenticate_request( $request );
     }
 
     public function rest_get_membership_plans( WP_REST_Request $request ): array {

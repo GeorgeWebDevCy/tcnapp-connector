@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.40
+Stable tag: 0.3.41
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,10 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.41 =
+* Enhancement: Reuse the Password Login bearer token authenticator across profile, membership, and password-change REST routes so API clients can authenticate with tokens or session cookies.
+* Fix: Return explicit `WP_Error` responses when bearer tokens are invalid or expired to keep REST error payloads consistent.
+
 = 0.3.40 =
 * Enhancement: Include the `WOOCOMMERCE_CONSUMER_KEY` and `WOOCOMMERCE_CONSUMER_SECRET` values in Password Login API responses so authenticated clients can automatically sign WooCommerce REST requests.
 
