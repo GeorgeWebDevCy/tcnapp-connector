@@ -98,12 +98,12 @@ JSON;
                 <div class="tcn-platform-checklist-content">
                     <h3><?php esc_html_e( 'HTTPS Enforcement', 'tcnapp-connector' ); ?></h3>
                     <ul>
-                        <li><?php esc_html_e( 'Production sites should leave “Allow HTTP During Development” disabled so HTTPS remains required.', 'tcnapp-connector' ); ?></li>
-                        <li><?php esc_html_e( 'Development sites running over HTTP can temporarily enable “Allow HTTP During Development”. This requires WP_DEBUG to be true and should never be enabled in production.', 'tcnapp-connector' ); ?></li>
+                        <li><?php esc_html_e( 'In production, keep HTTPS required (recommended).', 'tcnapp-connector' ); ?></li>
+                        <li><?php esc_html_e( 'In development, if the site runs on HTTP, enable “Allow Dev HTTP”. This typically only works when WP_DEBUG is true and should never be enabled in production.', 'tcnapp-connector' ); ?></li>
                     </ul>
 
                     <h3><?php esc_html_e( 'Allowed Origin (CORS)', 'tcnapp-connector' ); ?></h3>
-                    <p><?php esc_html_e( 'Set a precise origin when the mobile app runs in a browser or hybrid shell (for example, http://localhost:19006 or https://app.example.com). Leaving the field blank reflects the incoming Origin header but some browsers enforce an explicit value.', 'tcnapp-connector' ); ?></p>
+                    <p><?php esc_html_e( 'Set a precise origin when the app is web or hybrid based (for example, http://localhost:19006 or https://app.example.com). If left blank the plugin reflects the request Origin, but specifying an explicit value helps avoid strict browser CORS blocks.', 'tcnapp-connector' ); ?></p>
 
                     <h3><?php esc_html_e( 'Token Lifetime & Rate Limits', 'tcnapp-connector' ); ?></h3>
                     <p><?php esc_html_e( 'Token TTL and rate limits can stay on their defaults in production. If developers encounter frequent expiries in testing, extend the lifetime temporarily while debugging.', 'tcnapp-connector' ); ?></p>
@@ -189,7 +189,7 @@ JSON;
                 <div class="tcn-platform-checklist-content">
                     <ul>
                         <li><strong><?php esc_html_e( '401 Unauthorized:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Acquire a fresh token and ensure Authorization headers survive any proxy or CDN.', 'tcnapp-connector' ); ?></li>
-                        <li><strong><?php esc_html_e( '426/400 HTTPS Required:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Enable “Allow HTTP During Development” only on local sites or switch the environment to HTTPS.', 'tcnapp-connector' ); ?></li>
+                        <li><strong><?php esc_html_e( '426/400 HTTPS Required:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Enable “Allow Dev HTTP” only on local sites or switch the environment to HTTPS.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( '400 Avatar Upload Errors:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Send multipart/form-data with the avatar field, a filename, and a valid MIME type.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( 'Browser CORS Errors:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Set the Allowed Origin exactly, confirm OPTIONS preflight succeeds, and avoid wildcard origins with credentials.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( '413 Payload Too Large:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Increase PHP upload_max_filesize/post_max_size or compress the image before uploading.', 'tcnapp-connector' ); ?></li>
@@ -220,7 +220,7 @@ JSON;
                         <h3><?php esc_html_e( 'Plugin / Server Checklist', 'tcnapp-connector' ); ?></h3>
                         <ul>
                             <li><?php esc_html_e( 'Verify /gn/v1/login, /gn/v1/change-password, and /gn/v1/profile/avatar are registered.', 'tcnapp-connector' ); ?></li>
-                            <li><?php esc_html_e( 'Enforce HTTPS in production and reserve “Allow HTTP During Development” for local environments.', 'tcnapp-connector' ); ?></li>
+                            <li><?php esc_html_e( 'Enforce HTTPS in production and reserve “Allow Dev HTTP” for local environments.', 'tcnapp-connector' ); ?></li>
                             <li><?php esc_html_e( 'Set the Allowed Origin to the exact app origin when applicable.', 'tcnapp-connector' ); ?></li>
                             <li><?php esc_html_e( 'Confirm proxies preserve Authorization headers.', 'tcnapp-connector' ); ?></li>
                             <li><?php esc_html_e( 'Allow media uploads and size limits that accommodate avatar images.', 'tcnapp-connector' ); ?></li>
