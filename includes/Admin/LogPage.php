@@ -7,6 +7,7 @@ use function __;
 use function add_query_arg;
 use function add_submenu_page;
 use function admin_url;
+use function current_time;
 use function current_user_can;
 use function date_i18n;
 use function esc_attr;
@@ -15,6 +16,8 @@ use function esc_html__;
 use function esc_html_e;
 use function esc_url;
 use function get_option;
+use function gmdate;
+use function nocache_headers;
 use function submit_button;
 use function wp_die;
 use function wp_get_current_user;
@@ -30,6 +33,7 @@ class LogPage {
     public function register(): void {
         add_action( 'admin_menu', array( $this, 'register_menu' ) );
         add_action( 'admin_post_tcn_platform_clear_logs', array( $this, 'handle_clear_logs' ) );
+        add_action( 'admin_post_tcn_platform_download_logs', array( $this, 'handle_download_logs' ) );
     }
 
     public function register_menu(): void {
@@ -104,11 +108,19 @@ class LogPage {
             <?php endif; ?>
 
             <div class="tcn-platform-panel">
-                <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tcn-platform-log-actions">
-                    <?php wp_nonce_field( 'tcn_platform_clear_logs', 'tcn_platform_clear_logs_nonce' ); ?>
-                    <input type="hidden" name="action" value="tcn_platform_clear_logs" />
-                    <?php submit_button( __( 'Clear Log', 'tcnapp-connector' ), 'delete', 'submit', false ); ?>
-                </form>
+                <div class="tcn-platform-log-actions">
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tcn-platform-log-action-form">
+                        <?php wp_nonce_field( 'tcn_platform_clear_logs', 'tcn_platform_clear_logs_nonce' ); ?>
+                        <input type="hidden" name="action" value="tcn_platform_clear_logs" />
+                        <?php submit_button( __( 'Clear Log', 'tcnapp-connector' ), 'delete', 'submit', false ); ?>
+                    </form>
+
+                    <form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>" class="tcn-platform-log-action-form">
+                        <?php wp_nonce_field( 'tcn_platform_download_logs', 'tcn_platform_download_logs_nonce' ); ?>
+                        <input type="hidden" name="action" value="tcn_platform_download_logs" />
+                        <?php submit_button( __( 'Download Log', 'tcnapp-connector' ), 'secondary', 'submit', false ); ?>
+                    </form>
+                </div>
 
                 <div class="tcn-platform-log-table-wrapper">
                     <table id="tcn-platform-log-table" class="widefat fixed striped tcn-platform-log-table display nowrap" style="width:100%">
@@ -142,6 +154,31 @@ class LogPage {
             </div>
         </div>
         <?php
+    }
+
+    public function handle_download_logs(): void {
+        if ( ! current_user_can( 'manage_options' ) ) {
+            wp_die( esc_html__( 'You do not have permission to access this page.', 'tcnapp-connector' ) );
+        }
+
+        $nonce = isset( $_POST['tcn_platform_download_logs_nonce'] ) ? wp_unslash( $_POST['tcn_platform_download_logs_nonce'] ) : '';
+        if ( empty( $nonce ) || ! wp_verify_nonce( $nonce, 'tcn_platform_download_logs' ) ) {
+            wp_die( esc_html__( 'Invalid request.', 'tcnapp-connector' ) );
+        }
+
+        if ( ! RestrictedAccess::has_access( 'tcn-platform-logs' ) ) {
+            wp_die( esc_html__( 'Please unlock the Activity Log before performing this action.', 'tcnapp-connector' ) );
+        }
+
+        $logs     = Logger::get_logs();
+        $filename = sprintf( 'tcn-platform-activity-log-%s.txt', gmdate( 'Ymd-His' ) );
+
+        nocache_headers();
+        header( 'Content-Type: text/plain; charset=utf-8' );
+        header( 'Content-Disposition: attachment; filename="' . $filename . '"' );
+
+        echo $this->build_log_export( $logs ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        exit;
     }
 
     protected function format_time( $timestamp ): string {
@@ -308,5 +345,56 @@ class LogPage {
         }
 
         return ucwords( preg_replace( '/[_\-.]+/', ' ', (string) $key ) );
+    }
+
+    protected function build_log_export( array $logs ): string {
+        $lines   = array();
+        $lines[] = 'TCN Platform Activity Log';
+        /* translators: %s: Date and time the log export was generated. */
+        $lines[] = sprintf( __( 'Generated: %s', 'tcnapp-connector' ), $this->format_time( current_time( 'timestamp', true ) ) );
+        $lines[] = str_repeat( '=', 80 );
+        $lines[] = '';
+
+        if ( empty( $logs ) ) {
+            $lines[] = __( 'No activity recorded yet.', 'tcnapp-connector' );
+            return implode( "\n", $lines ) . "\n";
+        }
+
+        foreach ( $logs as $entry ) {
+            $timestamp = isset( $entry['time'] ) ? (int) $entry['time'] : 0;
+            $lines[]   = sprintf(
+                '[%1$s] %2$s — %3$s',
+                $this->format_time( $timestamp ),
+                $this->format_source( $entry['source'] ?? '' ),
+                $entry['message'] ?? ''
+            );
+
+            $context_export = $this->prepare_context_export( $entry['context'] ?? array() );
+            if ( $context_export ) {
+                $lines[] = __( 'Context:', 'tcnapp-connector' );
+                $lines[] = $context_export;
+            }
+
+            $lines[] = '';
+        }
+
+        return implode( "\n", $lines ) . "\n";
+    }
+
+    protected function prepare_context_export( $context ): string {
+        if ( empty( $context ) ) {
+            return '';
+        }
+
+        $encoded = wp_json_encode( $context, JSON_PRETTY_PRINT );
+        if ( false === $encoded ) {
+            $encoded = wp_json_encode( $context );
+        }
+
+        if ( false === $encoded || null === $encoded ) {
+            return '';
+        }
+
+        return (string) $encoded;
     }
 }

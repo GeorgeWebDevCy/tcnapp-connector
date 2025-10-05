@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.44
+- Feature: Add a Download Log button that exports the complete Activity Log to a timestamped text file for offline auditing.
+
 ### 0.3.43
 - Maintenance: Bump the plugin version for the 0.3.43 release.
 
