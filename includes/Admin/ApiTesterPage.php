@@ -375,6 +375,8 @@ class ApiTesterPage {
         $reset_url        = home_url( '/wp-json/gn/v1/reset-password' );
         $change_url       = home_url( '/wp-json/gn/v1/change-password' );
         $avatar_url       = home_url( '/wp-json/gn/v1/profile/avatar' );
+        $me_url           = home_url( '/wp-json/gn/v1/me' );
+        $log_url          = home_url( '/wp-json/gn/v1/log' );
         $plans_url        = home_url( '/wp-json/gn/v1/memberships/plans' );
         $stripe_intent    = home_url( '/wp-json/gn/v1/memberships/stripe-intent' );
         $confirm_upgrade  = home_url( '/wp-json/gn/v1/memberships/confirm' );
@@ -502,6 +504,31 @@ class ApiTesterPage {
                 ) ?: '',
             ),
             array(
+                'method'      => 'GET',
+                'url'         => $me_url,
+                'description' => __( 'Fetch the authenticated user payload using an API token.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires Authorization: Bearer header with a valid API token issued by /login.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-api-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'user' => array(
+                            'id'         => 123,
+                            'email'      => 'member@example.com',
+                            'first_name' => 'Member',
+                            'last_name'  => 'Example',
+                            'roles'      => array( 'customer' ),
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
                 'method'      => 'POST',
                 'url'         => $avatar_url,
                 'description' => __( 'Upload a profile photo and refresh the user session payload.', 'tcnapp-connector' ),
@@ -529,6 +556,36 @@ class ApiTesterPage {
                             '48' => 'https://example.com/avatar-48x48.jpg',
                             '96' => 'https://example.com/avatar-96x96.jpg',
                         ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $log_url,
+                'description' => __( 'Send diagnostic log entries from remote clients.', 'tcnapp-connector' ),
+                'note'        => __( 'Public endpoint; include contextual fields to help with troubleshooting.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type' => 'application/json',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'log_level'   => 'info',
+                        'log_source'  => 'mobile-app',
+                        'log_message' => 'User opened the dashboard.',
+                        'log_params'  => array(
+                            'user_id' => 123,
+                            'screen'  => 'dashboard',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'ok' => true,
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
