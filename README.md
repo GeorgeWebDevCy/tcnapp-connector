@@ -98,6 +98,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.51
+- Accept bearer tokens passed through `REDIRECT_HTTP_AUTHORIZATION` or `AUTHORIZATION` when FastCGI/proxy setups strip the standard header so API clients keep authenticating successfully.
+- Add a lightweight test harness that exercises the new header fallbacks to prevent regressions.
+
 ### 0.3.50
 - Add a dedicated App User role with upload permissions and automatically assign it to API-registered customers to unblock avatar uploads.
 
