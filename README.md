@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.43
+- Maintenance: Bump the plugin version for the 0.3.43 release.
+
 ### 0.3.42
 - Relax the avatar upload permission gate so members without the `upload_files` capability can update their own profile photo while continuing to block cross-account uploads.
 
