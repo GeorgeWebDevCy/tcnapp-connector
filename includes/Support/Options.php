@@ -164,7 +164,7 @@ class Options {
             return $levels;
         }
 
-        $products = wc_get_products(
+        $product_ids = wc_get_products(
             array(
                 'limit'      => -1,
                 'status'     => array( 'publish', 'pending', 'draft' ),
@@ -174,15 +174,22 @@ class Options {
                         'compare' => 'EXISTS',
                     ),
                 ),
+                'return'     => 'ids',
             )
         );
 
-        if ( empty( $products ) ) {
+        if ( empty( $product_ids ) || is_wp_error( $product_ids ) ) {
             return $levels;
         }
 
-        foreach ( $products as $product ) {
-            $level_key = $product->get_meta( '_tcn_membership_level' );
+        foreach ( $product_ids as $product_id ) {
+            $product_id = (int) $product_id;
+
+            if ( $product_id <= 0 ) {
+                continue;
+            }
+
+            $level_key = get_post_meta( $product_id, '_tcn_membership_level', true );
 
             if ( ! is_string( $level_key ) ) {
                 continue;
@@ -194,14 +201,18 @@ class Options {
                 continue;
             }
 
-            $price = $product->get_meta( '_price', true );
+            $price = get_post_meta( $product_id, '_price', true );
 
             if ( '' === $price ) {
-                $price = $product->get_meta( '_regular_price', true );
+                $price = get_post_meta( $product_id, '_regular_price', true );
             }
 
             if ( '' === $price ) {
-                $price = $product->get_price( 'edit' );
+                $product = function_exists( 'wc_get_product' ) ? wc_get_product( $product_id ) : null;
+
+                if ( $product ) {
+                    $price = $product->get_price( 'edit' );
+                }
             }
 
             $levels[ $level_key ]['fee'] = self::parse_currency_amount( $price );

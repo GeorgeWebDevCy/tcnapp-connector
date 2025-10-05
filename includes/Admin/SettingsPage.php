@@ -506,28 +506,49 @@ class SettingsPage {
             $statuses = array( 'publish', 'pending', 'draft', 'private' );
         }
 
-        $products = \wc_get_products(
+        $product_ids = \wc_get_products(
             array(
                 'limit'   => -1,
                 'status'  => $statuses,
-                'return'  => 'objects',
+                'return'  => 'ids',
                 'orderby' => 'title',
                 'order'   => 'ASC',
             )
         );
 
-        if ( is_wp_error( $products ) ) {
-            $products = array();
+        if ( is_wp_error( $product_ids ) ) {
+            $product_ids = array();
         }
 
         $options = array();
 
-        foreach ( $products as $product ) {
-            $options[ $product->get_id() ] = sprintf(
+        foreach ( $product_ids as $product_id ) {
+            $product_id = (int) $product_id;
+
+            if ( $product_id <= 0 ) {
+                continue;
+            }
+
+            if ( 'product_variation' === get_post_type( $product_id ) ) {
+                continue;
+            }
+
+            $name = get_post_field( 'post_title', $product_id );
+
+            if ( '' === $name && function_exists( 'wc_get_product' ) ) {
+                $product = wc_get_product( $product_id );
+                $name    = $product ? $product->get_name() : '';
+            }
+
+            if ( '' === $name ) {
+                continue;
+            }
+
+            $options[ $product_id ] = sprintf(
                 /* translators: 1: WooCommerce product name, 2: product ID */
                 __( '%1$s (#%2$d)', 'tcnapp-connector' ),
-                $product->get_name(),
-                $product->get_id()
+                $name,
+                $product_id
             );
         }
 

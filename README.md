@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.58
+- Reduce memory usage when enumerating membership products by querying WooCommerce IDs and metadata on demand instead of instantiating every product object up front.
+
 ### 0.3.57
 - Automatically authenticate REST requests that supply bearer tokens so protected endpoints recognise the same API tokens issued by `/gn/v1/login`, including WooCommerce customer and order routes.
 
