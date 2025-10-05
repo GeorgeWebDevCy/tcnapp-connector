@@ -10,6 +10,7 @@ use WP_User;
 class PasswordLoginService {
     const RATE_LIMIT_PREFIX = 'gn_login_rate_';
     const TOKEN_PREFIX      = 'gn_login_token_';
+    const API_TOKEN_PREFIX  = 'tcn_api_tok_';
     const RESET_META_KEY    = '_gn_password_api_reset_code';
 
     /**
@@ -574,7 +575,7 @@ class PasswordLoginService {
         $token    = wp_generate_password( 64, false );
 
         set_transient(
-            'tcn_api_tok_' . md5( $token ),
+            self::API_TOKEN_PREFIX . md5( $token ),
             array(
                 'user_id' => $user_id,
                 'exp'     => time() + $lifetime,
@@ -589,7 +590,7 @@ class PasswordLoginService {
     }
 
     protected function validate_api_token( string $token ) {
-        $t = get_transient( 'tcn_api_tok_' . md5( $token ) );
+        $t = get_transient( self::API_TOKEN_PREFIX . md5( $token ) );
         if ( empty( $t ) || empty( $t['user_id'] ) || time() > (int) $t['exp'] ) {
             return false;
         }

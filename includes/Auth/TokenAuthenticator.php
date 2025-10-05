@@ -65,18 +65,21 @@ class TokenAuthenticator {
             );
         }
 
-        $payload = get_transient( PasswordLoginService::TOKEN_PREFIX . md5( $token ) );
-        if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
-            $this->log_debug(
-                'authenticate_request token payload missing or expired',
-                array( 'token_hash' => md5( $token ) )
-            );
+        $token_hash = md5( $token );
+        $token_type = 'login';
 
-            return new WP_Error(
-                'tcn_rest_token_expired',
-                __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' ),
-                array( 'status' => rest_authorization_required_code() )
-            );
+        $payload = $this->get_login_token_payload( $token_hash );
+        if ( false === $payload ) {
+            $token_type = 'api';
+            $payload    = $this->get_api_token_payload( $token_hash );
+
+            if ( false === $payload ) {
+                return new WP_Error(
+                    'tcn_rest_token_expired',
+                    __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' ),
+                    array( 'status' => rest_authorization_required_code() )
+                );
+            }
         }
 
         $user_id = (int) $payload['user_id'];
@@ -84,8 +87,9 @@ class TokenAuthenticator {
             $this->log_debug(
                 'authenticate_request token payload user invalid',
                 array(
-                    'token_hash' => md5( $token ),
+                    'token_hash' => $token_hash,
                     'user_id'    => $user_id,
+                    'token_type' => $token_type,
                 )
             );
 
@@ -102,11 +106,67 @@ class TokenAuthenticator {
             'authenticate_request succeeded',
             array(
                 'user_id'    => $user_id,
-                'token_hash' => md5( $token ),
+                'token_hash' => $token_hash,
+                'token_type' => $token_type,
             )
         );
 
         return $user_id;
+    }
+
+    /**
+     * Retrieve the payload for a login hand-off token.
+     *
+     * @return array<string, mixed>|false
+     */
+    protected function get_login_token_payload( string $token_hash ) {
+        $payload = get_transient( PasswordLoginService::TOKEN_PREFIX . $token_hash );
+
+        if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
+            $this->log_debug(
+                'authenticate_request login token payload missing or expired',
+                array( 'token_hash' => $token_hash )
+            );
+
+            return false;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Retrieve the payload for a long-lived API bearer token.
+     *
+     * @return array<string, mixed>|false
+     */
+    protected function get_api_token_payload( string $token_hash ) {
+        $payload = get_transient( PasswordLoginService::API_TOKEN_PREFIX . $token_hash );
+
+        if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
+            $this->log_debug(
+                'authenticate_request api token payload missing',
+                array( 'token_hash' => $token_hash )
+            );
+
+            return false;
+        }
+
+        $expires = isset( $payload['exp'] ) ? (int) $payload['exp'] : 0;
+        if ( $expires && time() > $expires ) {
+            $this->log_debug(
+                'authenticate_request api token payload expired',
+                array(
+                    'token_hash' => $token_hash,
+                    'expired_at' => $expires,
+                )
+            );
+
+            delete_transient( PasswordLoginService::API_TOKEN_PREFIX . $token_hash );
+
+            return false;
+        }
+
+        return $payload;
     }
 
     /**

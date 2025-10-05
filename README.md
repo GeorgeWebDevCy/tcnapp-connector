@@ -98,6 +98,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.48
+- Accept long-lived Password Login API bearer tokens in addition to one-time hand-off tokens so REST requests authenticated from the mobile app can reuse the stored `api_token` without falling back to cookie flows.
+- Document the shared API token prefix in code to keep authenticator lookups aligned.
+
 ### 0.3.47
 - Switch the mobile login flow to rely on `mode=token` hand-offs and extend the login token lifetime to a full week so members can finish authentication even if the browser redirect is delayed.
 
