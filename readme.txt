@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.47
+Stable tag: 0.3.48
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,10 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.48 =
+* Fix: Allow REST requests authenticated with the Password Login API bearer token to validate using either the one-time login token or the long-lived `api_token`, ensuring mobile clients can reuse stored bearer credentials.
+* Maintenance: Expose a class constant for the API token transient prefix so authentication helpers stay in sync.
+
 = 0.3.47 =
 * Change the Password Login API to prefer `mode=token` flows and extend the login token lifetime to one week so delayed hand-offs still succeed.
 
