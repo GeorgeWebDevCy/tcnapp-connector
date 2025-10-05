@@ -346,6 +346,15 @@ class PasswordLoginService {
         }
 
         $user = wp_get_current_user();
+
+        if ( ( ! $user || ! $user->ID ) && is_int( $authenticated ) && $authenticated > 0 ) {
+            $user = get_user_by( 'id', $authenticated );
+
+            if ( $user instanceof WP_User ) {
+                wp_set_current_user( $user->ID );
+            }
+        }
+
         if ( ! $user || ! $user->ID ) {
             return new WP_Error( 'gn_not_authenticated', __( 'Authentication required.', 'tcnapp-connector' ), array( 'status' => 401 ) );
         }

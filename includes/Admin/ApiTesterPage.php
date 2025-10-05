@@ -485,11 +485,11 @@ class ApiTesterPage {
                 'method'      => 'POST',
                 'url'         => $change_url,
                 'description' => __( 'Change the logged-in user password.', 'tcnapp-connector' ),
-                'note'        => __( 'Requires an authenticated session or X-WP-Nonce header.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires Authorization: Bearer api_token or an authenticated browser session/X-WP-Nonce.', 'tcnapp-connector' ),
                 'headers'     => wp_json_encode(
                     array(
-                        'Content-Type' => 'application/json',
-                        'X-WP-Nonce'   => 'paste-nonce-here',
+                        'Content-Type'  => 'application/json',
+                        'Authorization' => 'Bearer paste-api-token-here',
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
