@@ -109,7 +109,7 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
-### 0.3.56
+### 0.3.57
 - Automatically authenticate REST requests that supply bearer tokens so protected endpoints recognise the same API tokens issued by `/gn/v1/login`, including WooCommerce customer and order routes.
 
 ### 0.3.55
