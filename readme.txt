@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.52
+Stable tag: 0.3.53
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,10 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.53 =
+* Feature: Introduce a Deployment Checklists screen under **TCN Platform** that guides administrators through verifying `/gn/v1/login`, `/gn/v1/change-password`, and `/gn/v1/profile/avatar`, tuning HTTPS/CORS, validating payloads, and running cURL smoke tests from the server.
+* Enhancement: Align the new troubleshooting cards with existing admin styling so the guidance is easy to scan inside WordPress.
+
 = 0.3.52 =
 * Fix: Ensure `/gn/v1/change-password` resolves the authenticated user when requests rely solely on `Authorization: Bearer` tokens so mobile clients can rotate credentials without needing browser cookies.
 * Enhancement: Refresh the API tester preset and documentation to highlight the bearer token requirement, payload fields, and multipart avatar upload expectations.
