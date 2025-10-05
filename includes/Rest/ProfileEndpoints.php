@@ -69,10 +69,16 @@ class ProfileEndpoints {
 
         $request->set_attribute( 'tcn_authenticated_user_id', $user_id );
 
-        if ( ! current_user_can( 'upload_files' ) ) {
+        if ( current_user_can( 'upload_files' ) ) {
+            return true;
+        }
+
+        $target_user_id = $this->determine_target_user_id( $request, $user_id );
+
+        if ( $target_user_id !== $user_id ) {
             return new WP_Error(
                 'tcn_rest_forbidden',
-                __( 'You do not have permission to upload files.', 'tcnapp-connector' ),
+                __( 'You can only upload an avatar for your own profile.', 'tcnapp-connector' ),
                 array( 'status' => 403 )
             );
         }
@@ -329,5 +335,31 @@ class ProfileEndpoints {
         }
 
         return 400;
+    }
+
+    /**
+     * Determine the profile ID targeted by the request.
+     */
+    protected function determine_target_user_id( WP_REST_Request $request, int $fallback ): int {
+        $candidates = array(
+            $request->get_param( 'user_id' ),
+            $request->get_param( 'id' ),
+            $request->get_param( 'user' ),
+            $request->get_attribute( 'tcn_profile_user_id' ),
+        );
+
+        foreach ( $candidates as $candidate ) {
+            if ( null === $candidate ) {
+                continue;
+            }
+
+            $candidate = (int) $candidate;
+
+            if ( $candidate > 0 ) {
+                return $candidate;
+            }
+        }
+
+        return $fallback;
     }
 }
