@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.51
+Stable tag: 0.3.52
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -58,7 +58,7 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * `/wp-json/gn/v1/login` – POST authentication with seven-day token hand-offs plus rate limiting and optional device locking filters.
 * `/wp-json/gn/v1/register` – POST registration with validation for username, email, and password strength (`gn_password_api_user_registered` fires on success).
 * `/wp-json/gn/v1/forgot-password` and `/reset-password` – POST flows that mirror WordPress core without leaking account existence.
-* `/wp-json/gn/v1/change-password` – POST authenticated password changes with verification of the current password.
+* `/wp-json/gn/v1/change-password` – POST authenticated password changes that require the current password and an `Authorization: Bearer` token (or a valid session/X-WP-Nonce).
 * Helper: `GN_Password_Login_API::issue_reset_verification_code( $user_id, $ttl )` generates short-lived reset codes for bespoke flows.
 
 == Mobile App Integration ==
@@ -93,6 +93,11 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.52 =
+* Fix: Ensure `/gn/v1/change-password` resolves the authenticated user when requests rely solely on `Authorization: Bearer` tokens so mobile clients can rotate credentials without needing browser cookies.
+* Enhancement: Refresh the API tester preset and documentation to highlight the bearer token requirement, payload fields, and multipart avatar upload expectations.
+* Test: Extend the token authenticator coverage to include direct bearer headers and reject Basic credentials that bypass the security layer.
+
 = 0.3.51 =
 * Fix: Accept bearer tokens passed via `REDIRECT_HTTP_AUTHORIZATION` or `AUTHORIZATION` server headers so reverse proxies and FastCGI setups authenticate correctly instead of reporting missing tokens.
 * Test: Add coverage for the new header fallbacks to guard against regressions when WordPress or hosting environments adjust how they expose authorization headers.

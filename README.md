@@ -79,7 +79,7 @@ All endpoints live under `wp-json/gn/v1`:
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
-| `/change-password` | POST | Authenticated password change with verification of the current password. |
+| `/change-password` | POST | Authenticated password change that requires the current password plus `Authorization: Bearer {api_token}` (or an active session). |
 
 Additional helpers:
 - `GN_Password_Login_API::issue_reset_verification_code( $user_id, $ttl )` for generating short-lived verification codes.
@@ -97,6 +97,11 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.52
+- Ensure `/change-password` resolves the authenticated user when requests rely solely on `Authorization: Bearer` tokens so mobile clients can rotate credentials without a browser cookie.
+- Refresh the API tester preset and docs to call out the bearer token requirement, payload fields, and multipart form expectations for avatar updates.
+- Extend the token authenticator tests to cover direct bearer headers and reject Basic credentials that bypass the security layer.
 
 ### 0.3.51
 - Accept bearer tokens passed through `REDIRECT_HTTP_AUTHORIZATION` or `AUTHORIZATION` when FastCGI/proxy setups strip the standard header so API clients keep authenticating successfully.

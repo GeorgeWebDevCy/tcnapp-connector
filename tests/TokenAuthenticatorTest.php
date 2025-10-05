@@ -24,6 +24,21 @@ final class TokenAuthenticatorTest extends TestCase {
         $this->assertContains( md5( 'redirect-token' ), $authenticator->received_token_hashes );
     }
 
+    public function test_authenticates_with_authorization_header(): void {
+        $authenticator = $this->create_authenticator_expectation( 'header-token' );
+        $request       = new WP_REST_Request(
+            array(
+                'Authorization' => 'Bearer header-token',
+            )
+        );
+
+        $result = $authenticator->authenticate_request( $request );
+
+        $this->assertSame( 123, $result );
+        $this->assertSame( 123, $GLOBALS['current_user_id'] ?? null );
+        $this->assertContains( md5( 'header-token' ), $authenticator->received_token_hashes );
+    }
+
     public function test_authenticates_with_authorization_header_fallback(): void {
         $_SERVER['AUTHORIZATION'] = 'Bearer alt-token';
 
@@ -35,6 +50,19 @@ final class TokenAuthenticatorTest extends TestCase {
         $this->assertSame( 123, $result );
         $this->assertSame( 123, $GLOBALS['current_user_id'] ?? null );
         $this->assertContains( md5( 'alt-token' ), $authenticator->received_token_hashes );
+    }
+
+    public function test_rejects_non_bearer_authorization_header(): void {
+        $authenticator = $this->create_authenticator_expectation( 'unused-token' );
+        $request       = new WP_REST_Request(
+            array(
+                'Authorization' => 'Basic ZGVtbzp0ZXN0',
+            )
+        );
+
+        $result = $authenticator->authenticate_request( $request );
+
+        $this->assertSame( 'WP_Error', get_class( $result ) );
     }
 
     private function create_authenticator_expectation( string $expected_token ): TokenAuthenticator {
