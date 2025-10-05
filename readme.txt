@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.54
+Stable tag: 0.3.55
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,6 +43,14 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * Monitor REST activity and plugin events from **TCN Platform → Activity Log** in the WordPress admin.
 * The log records calls to `gn/v1/*` and `tcn-mlm/v1/*`, automatically redacting sensitive payload fields such as passwords and tokens.
 * Plugin activation, deactivation, module toggles, settings updates, and manual log clears also appear so administrators can audit configuration changes.
+
+== Deployment Checklists ==
+* Visit **TCN Platform → Deployment Checklists** for preflight checks covering the Password Login API routes.
+* Authentication quick hits called out on the page:
+  * Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly states it is public.
+  * Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username/email and password.
+  * Confirm the authenticated account is active and not blocked by membership or capability plugins before testing protected routes.
+  * When Cloudflare or other proxies sit in front of the site, verify the `Authorization` header reaches PHP unchanged.
 
 == Membership & MLM Highlights ==
 * Seed Blue/Gold/Platinum/Black WooCommerce products on activation so the catalogue aligns with the mobile tiers.
@@ -93,6 +101,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.55 =
+* Update the deployment checklist authentication guidance to emphasise bearer token requirements, token retrieval, account status checks, and proxy header forwarding.
+
 = 0.3.54 =
 * Refresh the deployment checklist language so HTTPS, CORS, and troubleshooting guidance reference the “Allow Dev HTTP” toggle and explicit origin recommendations.
 * Rename the HTTPS development toggle in settings to “Allow Dev HTTP” for consistency with the documentation.
