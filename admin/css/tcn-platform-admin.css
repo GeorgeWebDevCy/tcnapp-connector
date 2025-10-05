@@ -467,7 +467,12 @@
 .tcn-platform-log-actions {
     display: flex;
     justify-content: flex-end;
+    gap: 12px;
     margin-bottom: 18px;
+}
+
+.tcn-platform-log-action-form {
+    margin: 0;
 }
 
 .tcn-platform-log-actions .button {
