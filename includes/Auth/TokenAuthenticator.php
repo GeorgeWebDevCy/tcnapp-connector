@@ -142,6 +142,14 @@ class TokenAuthenticator {
      */
     protected function extract_token_from_header( string $header ) {
         if ( ! preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
+            if ( ! $this->should_log_non_bearer_header( $header ) ) {
+                return new WP_Error(
+                    'tcn_rest_invalid_token',
+                    __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
+                    array( 'status' => rest_authorization_required_code() )
+                );
+            }
+
             $this->log_debug(
                 'authenticate_request header missing bearer token prefix',
                 array( 'raw_header_preview' => $this->mask_string( $header ) )
@@ -166,6 +174,32 @@ class TokenAuthenticator {
         }
 
         return $token;
+    }
+
+    /**
+     * Determine whether a non-bearer Authorization header should be logged.
+     */
+    protected function should_log_non_bearer_header( string $header ): bool {
+        if ( '' === trim( $header ) ) {
+            return false;
+        }
+
+        if ( ! preg_match( '/^([A-Za-z]+)\s+/', $header, $matches ) ) {
+            return true;
+        }
+
+        $scheme = strtolower( (string) $matches[1] );
+
+        return ! in_array( $scheme, $this->get_suppressed_authorization_schemes(), true );
+    }
+
+    /**
+     * Return a list of Authorization schemes that should not trigger debug logs when missing a bearer token.
+     *
+     * @return array<int, string>
+     */
+    protected function get_suppressed_authorization_schemes(): array {
+        return array( 'basic', 'digest' );
     }
 
     /**
