@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.49
+Stable tag: 0.3.50
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.50 =
+* Enhancement: Add a dedicated App User role with upload permissions and automatically assign it to API-registered customers so avatar uploads succeed without granting full customer caps.
+
 = 0.3.49 =
 * Fix: Remove the cookie-based login mode so Password Login API responses always issue one-time hand-off tokens.
 

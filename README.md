@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.50
+- Add a dedicated App User role with upload permissions and automatically assign it to API-registered customers to unblock avatar uploads.
+
 ### 0.3.49
 - Remove the cookie-based login mode so Password Login API responses always issue one-time hand-off tokens.
 

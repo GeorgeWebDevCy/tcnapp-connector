@@ -3,6 +3,7 @@ namespace TCN\Platform\Membership;
 
 use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Support\Options;
+use TCN\Platform\Support\Roles;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -747,6 +748,8 @@ class MembershipModule {
         if ( ! $user instanceof WP_User ) {
             return;
         }
+
+        Roles::maybe_assign_app_user_role( $user );
 
         if ( ! in_array( 'customer', $user->roles, true ) ) {
             $user->add_role( 'customer' );
