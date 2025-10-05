@@ -57,7 +57,7 @@ class SettingsPage {
         $login = array(
             'allowed_origin'    => isset( $_POST['allowed_origin'] ) ? esc_url_raw( wp_unslash( $_POST['allowed_origin'] ) ) : '',
             'allow_dev_http'    => ! empty( $_POST['allow_dev_http'] ),
-            'token_lifetime'    => isset( $_POST['token_lifetime'] ) ? max( 60, absint( $_POST['token_lifetime'] ) ) : 15 * MINUTE_IN_SECONDS,
+            'token_lifetime'    => isset( $_POST['token_lifetime'] ) ? max( WEEK_IN_SECONDS, absint( $_POST['token_lifetime'] ) ) : WEEK_IN_SECONDS,
             'rate_limit'        => isset( $_POST['rate_limit'] ) ? max( 3, absint( $_POST['rate_limit'] ) ) : 10,
             'rate_limit_window' => isset( $_POST['rate_limit_window'] ) ? max( 60, absint( $_POST['rate_limit_window'] ) ) : 5 * MINUTE_IN_SECONDS,
         );
@@ -178,7 +178,8 @@ class SettingsPage {
                                     <label for="token_lifetime"><?php esc_html_e( 'Login Token Lifetime (seconds)', 'tcnapp-connector' ); ?></label>
                                 </th>
                                 <td>
-                                    <input type="number" min="60" step="60" id="token_lifetime" name="token_lifetime" value="<?php echo esc_attr( $login_settings['token_lifetime'] ); ?>" />
+                                    <input type="number" min="<?php echo esc_attr( WEEK_IN_SECONDS ); ?>" step="60" id="token_lifetime" name="token_lifetime" value="<?php echo esc_attr( $login_settings['token_lifetime'] ); ?>" />
+                                    <p class="description"><?php esc_html_e( 'Default is one week (604,800 seconds) so mobile clients can trade a hand-off token for cookies well after the initial login.', 'tcnapp-connector' ); ?></p>
                                 </td>
                             </tr>
                             <tr>

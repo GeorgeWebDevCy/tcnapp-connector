@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.46
+Stable tag: 0.3.47
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -55,7 +55,7 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * REST endpoints under `tcn-mlm/v1/*` expose profiles, genealogy trees, and commissions for the TCNApp dashboards.
 
 == Password Login API Endpoints ==
-* `/wp-json/gn/v1/login` – POST authentication with optional one-time token hand-offs (`mode=token`) plus rate limiting and optional device locking filters.
+* `/wp-json/gn/v1/login` – POST authentication with seven-day token hand-offs (`mode=token`, default) plus rate limiting and optional device locking filters. Switch to `mode=cookie` only when same-origin flows need WordPress cookies immediately.
 * `/wp-json/gn/v1/register` – POST registration with validation for username, email, and password strength (`gn_password_api_user_registered` fires on success).
 * `/wp-json/gn/v1/forgot-password` and `/reset-password` – POST flows that mirror WordPress core without leaking account existence.
 * `/wp-json/gn/v1/change-password` – POST authenticated password changes with verification of the current password.
@@ -93,6 +93,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.47 =
+* Change the Password Login API to prefer `mode=token` flows and extend the login token lifetime to one week so delayed hand-offs still succeed.
+
 = 0.3.46 =
 * Enhancement: Expand the API tester presets to include every REST endpoint—authentication, membership, MLM, and WooCommerce—so administrators can populate requests with a single click.
 

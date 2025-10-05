@@ -397,6 +397,7 @@ class ApiTesterPage {
                     array(
                         'username' => 'demo@example.com',
                         'password' => 'secret-password',
+                        'mode'     => 'token',
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
@@ -404,8 +405,12 @@ class ApiTesterPage {
                     array(
                         'success'    => true,
                         'token'      => 'example-token',
-                        'expires_in' => 900,
-                        'redirect'   => $login_url,
+                        'api_token'  => 'example-api-token',
+                        'expires_in' => 604800,
+                        'user'       => array(
+                            'id'    => 123,
+                            'email' => 'demo@example.com',
+                        ),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
