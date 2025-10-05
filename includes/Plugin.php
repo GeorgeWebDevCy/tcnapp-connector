@@ -6,6 +6,7 @@ use TCN\Platform\Admin\ApiTesterPage;
 use TCN\Platform\Admin\LogPage;
 use TCN\Platform\Admin\SettingsPage;
 use TCN\Platform\Auth\PasswordLoginService;
+use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Membership\MembershipModule;
 use TCN\Platform\Rest\ProfileEndpoints;
 use TCN\Platform\Rest\WooCommerceEndpoints;
@@ -46,12 +47,14 @@ class Plugin {
     }
 
     protected function register_services(): void {
-        $this->services[] = new MembershipModule( $this->modules );
+        $token_authenticator = new TokenAuthenticator();
+
+        $this->services[] = new MembershipModule( $this->modules, $token_authenticator );
         $this->services[] = new ActivityMonitor();
         $this->services[] = new Updater();
 
         if ( $this->modules->is_enabled( Modules::MODULE_AUTH_LOGIN ) ) {
-            $this->services[] = new PasswordLoginService();
+            $this->services[] = new PasswordLoginService( $token_authenticator );
         } else {
             PasswordLoginService::register_compatibility_alias();
         }
@@ -60,7 +63,7 @@ class Plugin {
             $this->services[] = new WooCommerceEndpoints();
         }
 
-        $this->services[] = new ProfileEndpoints();
+        $this->services[] = new ProfileEndpoints( $token_authenticator );
 
         if ( is_admin() ) {
             $this->services[] = new SettingsPage( $this->modules );

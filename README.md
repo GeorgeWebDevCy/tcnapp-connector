@@ -98,6 +98,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.41
+- Centralise Password Login bearer token validation and reuse it across profile, membership, and password-change REST endpoints so mobile clients can authenticate with either tokens or session cookies.
+- Return REST-friendly `WP_Error` responses when tokens are invalid or expired to keep API feedback consistent.
+
 ### 0.3.40
 - Surface the `WOOCOMMERCE_CONSUMER_KEY`/`WOOCOMMERCE_CONSUMER_SECRET` bundle in Password Login API responses so authenticated clients can automatically sign WooCommerce bridge requests.
 

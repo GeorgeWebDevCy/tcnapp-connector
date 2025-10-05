@@ -1,13 +1,22 @@
 <?php
 namespace TCN\Platform\Rest;
 
-use TCN\Platform\Auth\PasswordLoginService;
+use TCN\Platform\Auth\TokenAuthenticator;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
 
 class ProfileEndpoints {
+    /**
+     * @var TokenAuthenticator|null
+     */
+    protected $token_authenticator;
+
+    public function __construct( ?TokenAuthenticator $token_authenticator = null ) {
+        $this->token_authenticator = $token_authenticator;
+    }
+
     /**
      * Register WordPress hooks.
      */
@@ -41,7 +50,13 @@ class ProfileEndpoints {
         $user_id = get_current_user_id();
 
         if ( $user_id <= 0 ) {
-            $user_id = $this->authenticate_with_bearer_token( $request );
+            $authenticated = $this->authenticate_with_token( $request );
+
+            if ( is_wp_error( $authenticated ) ) {
+                return $authenticated;
+            }
+
+            $user_id = (int) $authenticated;
         }
 
         if ( $user_id <= 0 ) {
@@ -222,46 +237,12 @@ class ProfileEndpoints {
         return $response;
     }
 
-    /**
-     * Attempt to authenticate using a Password Login API bearer token.
-     */
-    protected function authenticate_with_bearer_token( WP_REST_Request $request ): int {
-        $header = $request->get_header( 'authorization' );
-
-        if ( empty( $header ) && isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
-            $header = (string) wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] );
-        }
-
-        if ( ! is_string( $header ) || '' === $header ) {
+    protected function authenticate_with_token( WP_REST_Request $request ) {
+        if ( ! $this->token_authenticator ) {
             return 0;
         }
 
-        if ( ! preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
-            return 0;
-        }
-
-        $token = trim( (string) $matches[1] );
-        if ( '' === $token ) {
-            return 0;
-        }
-
-        if ( ! class_exists( PasswordLoginService::class ) ) {
-            return 0;
-        }
-
-        $payload = get_transient( PasswordLoginService::TOKEN_PREFIX . md5( $token ) );
-        if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
-            return 0;
-        }
-
-        $user_id = (int) $payload['user_id'];
-        if ( $user_id <= 0 || ! get_user_by( 'id', $user_id ) ) {
-            return 0;
-        }
-
-        wp_set_current_user( $user_id );
-
-        return $user_id;
+        return $this->token_authenticator->authenticate_request( $request );
     }
 
     /**
