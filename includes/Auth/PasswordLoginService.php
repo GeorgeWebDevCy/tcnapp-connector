@@ -92,6 +92,59 @@ class PasswordLoginService {
                 'permission_callback' => array( $this, 'require_login_or_token' ),
             )
         );
+
+        register_rest_route(
+            'gn/v1',
+            '/me',
+            array(
+                'methods'             => 'GET',
+                'callback'            => function( WP_REST_Request $req ) {
+                    $hdr = $req->get_header( 'authorization' );
+                    if ( ! $hdr || 0 !== stripos( $hdr, 'Bearer ' ) ) {
+                        return new WP_Error( 'gn_unauth', 'Missing bearer', array( 'status' => 401 ) );
+                    }
+
+                    $token   = trim( substr( $hdr, 7 ) );
+                    $user_id = $this->validate_api_token( $token );
+                    if ( ! $user_id ) {
+                        return new WP_Error( 'gn_unauth', 'Invalid token', array( 'status' => 401 ) );
+                    }
+
+                    $user = get_user_by( 'ID', $user_id );
+
+                    return array(
+                        'user' => $this->prepare_user_payload( $user ),
+                    );
+                },
+                'permission_callback' => '__return_true',
+            )
+        );
+
+        register_rest_route(
+            'gn/v1',
+            '/log',
+            array(
+                'methods'             => 'POST',
+                'callback'            => function( WP_REST_Request $r ) {
+                    $level   = sanitize_text_field( $r->get_param( 'log_level' ) ?: 'info' );
+                    $message = sanitize_text_field( $r->get_param( 'log_message' ) ?: '(no message)' );
+                    $source  = sanitize_text_field( $r->get_param( 'log_source' ) ?: 'mobile-app' );
+                    $params  = $r->get_param( 'log_params' );
+
+                    \TCN\Platform\Support\Logger::log(
+                        $source,
+                        $message,
+                        array(
+                            'level'  => $level,
+                            'params' => is_array( $params ) ? $params : array(),
+                        )
+                    );
+
+                    return array( 'ok' => true );
+                },
+                'permission_callback' => '__return_true',
+            )
+        );
     }
 
     public function handle_login( WP_REST_Request $request ) {
@@ -134,7 +187,6 @@ class PasswordLoginService {
             $token = $this->issue_login_token( $user->ID );
 
             $response['token']      = $token['token'];
-            $response['expires_in'] = $token['expires_in'];
             $response['redirect']   = add_query_arg(
                 array(
                     'action' => 'gn_token_login',
@@ -143,6 +195,11 @@ class PasswordLoginService {
                 wp_login_url()
             );
         }
+
+        $api                     = $this->issue_api_token( $user->ID );
+        $response['api_token']    = $api['token'];
+        $response['expires_in']   = $api['expires_in'];
+        unset( $response['redirect'] );
 
         $woocommerce_credentials = $this->get_woocommerce_credentials();
         if ( ! empty( $woocommerce_credentials ) ) {
@@ -510,6 +567,34 @@ class PasswordLoginService {
             'token'      => $token,
             'expires_in' => $lifetime,
         );
+    }
+
+    protected function issue_api_token( int $user_id ): array {
+        $lifetime = DAY_IN_SECONDS * 7;
+        $token    = wp_generate_password( 64, false );
+
+        set_transient(
+            'tcn_api_tok_' . md5( $token ),
+            array(
+                'user_id' => $user_id,
+                'exp'     => time() + $lifetime,
+            ),
+            $lifetime
+        );
+
+        return array(
+            'token'      => $token,
+            'expires_in' => $lifetime,
+        );
+    }
+
+    protected function validate_api_token( string $token ) {
+        $t = get_transient( 'tcn_api_tok_' . md5( $token ) );
+        if ( empty( $t ) || empty( $t['user_id'] ) || time() > (int) $t['exp'] ) {
+            return false;
+        }
+
+        return (int) $t['user_id'];
     }
 
     protected function build_token_key( string $token ): string {
