@@ -56,7 +56,7 @@ TCN Platform combines the WooCommerce membership/MLM stack with the GN Password 
 ## Authentication Flow
 1. Mobile or web client posts credentials to `POST /wp-json/gn/v1/login`.
 2. The service enforces HTTPS (unless development overrides apply), rate limits by IP/username, and authenticates via WordPress core.
-3. Successful requests now default to issuing a seven-day token hand-off (`mode=token`) that redirects through `/wp-login.php?action=gn_token_login` when the browser finally completes the flow; `mode=cookie` remains available for same-origin sessions that need immediate cookies.
+3. Successful requests issue a seven-day token hand-off that redirects through `/wp-login.php?action=gn_token_login` when the browser finally completes the flow.
 4. Registration, forgot/reset, and change password flows share the same HTTPS and response-hardening rules, avoiding user enumeration.
 5. Verification helpers (`issue_reset_verification_code`, filters for custom verification) keep the endpoint flexible for SMS/email code workflows.
 

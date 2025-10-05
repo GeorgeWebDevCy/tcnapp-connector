@@ -156,8 +156,6 @@ class PasswordLoginService {
 
         $username = sanitize_text_field( $request->get_param( 'username' ) );
         $password = (string) $request->get_param( 'password' );
-        $mode     = sanitize_key( $request->get_param( 'mode' ) );
-
         if ( empty( $username ) || empty( $password ) ) {
             return new WP_Error( 'gn_missing_credentials', __( 'Username and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
         }
@@ -181,21 +179,16 @@ class PasswordLoginService {
             'user'    => $this->prepare_user_payload( $user ),
         );
 
-        if ( 'cookie' === $mode ) {
-            wp_set_current_user( $user->ID );
-            wp_set_auth_cookie( $user->ID, true );
-        } else {
-            $token = $this->issue_login_token( $user->ID );
+        $token = $this->issue_login_token( $user->ID );
 
-            $response['token']      = $token['token'];
-            $response['redirect']   = add_query_arg(
-                array(
-                    'action' => 'gn_token_login',
-                    'token'  => rawurlencode( $token['token'] ),
-                ),
-                wp_login_url()
-            );
-        }
+        $response['token']    = $token['token'];
+        $response['redirect'] = add_query_arg(
+            array(
+                'action' => 'gn_token_login',
+                'token'  => rawurlencode( $token['token'] ),
+            ),
+            wp_login_url()
+        );
 
         $api                     = $this->issue_api_token( $user->ID );
         $response['api_token']    = $api['token'];
