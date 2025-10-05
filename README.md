@@ -98,6 +98,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.40
+- Surface the `WOOCOMMERCE_CONSUMER_KEY`/`WOOCOMMERCE_CONSUMER_SECRET` bundle in Password Login API responses so authenticated clients can automatically sign WooCommerce bridge requests.
+
 ### 0.3.39
 - Expand the Activity Log canvas so the DataTable, payload badges, and context panels have room to display wide REST parameters without forcing horizontal scrolling.
 

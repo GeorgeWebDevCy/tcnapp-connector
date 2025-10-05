@@ -42,6 +42,7 @@ Every endpoint listed below has a matching preset in the tester, so you can vali
 
 - Success payloads contain `success: true`, along with contextual data such as `token`, `redirect`, and `user` profile arrays.
 - Errors return `WP_Error` objects with HTTP status codes (400, 401, 403, 404, 409, 429) depending on validation failures or rate limiting.
+- When `WOOCOMMERCE_CONSUMER_KEY` and `WOOCOMMERCE_CONSUMER_SECRET` constants are defined, successful responses include an `auth.woocommerce` bundle (plus the same data on the `user.woocommerce` key) exposing the consumer pair and ready-to-use Basic authorization header for subsequent bridge requests.
 
 #### WordPress Avatar Upload Endpoint
 
@@ -215,7 +216,8 @@ The tables below enumerate every method, its visibility, parameters, return valu
 | `handle_change_password( WP_REST_Request $request )` | public | Validates current password, sets new password, refreshes auth cookies, fires `gn_password_api_password_changed`. | `$request` | array or `WP_Error` | — |
 | `filter_pre_serve_request( $served, $result, $request, $server )` | public | Adds CORS headers for `gn/v1` namespace. | Mixed | bool | Called during REST response serving. |
 | `handle_token_login()` | public | Consumes transient token, logs user in, redirects (filterable). | — | void | Halts execution with `wp_safe_redirect()`. |
-| `prepare_user_payload( WP_User $user )` | protected | Builds REST payload with membership metadata. | `$user` | array | Includes sponsor ID. |
+| `prepare_user_payload( WP_User $user )` | protected | Builds REST payload with membership metadata. | `$user` | array | Includes sponsor ID and WooCommerce credentials when available. |
+| `get_woocommerce_credentials()` | protected | Returns constants-backed WooCommerce consumer credentials plus Basic header helper. | — | array | Empty when constants missing/blank. |
 | `get_user_from_login( string $login )` | protected | Resolves login/email to `WP_User`. | `$login` | `WP_User|null` | Returns null when not found. |
 | `maybe_enforce_https( WP_REST_Request $request )` | protected | Blocks non-HTTPS requests unless dev override filter allows. | `$request` | true or `WP_Error` | Uses login settings and `gn_password_api_allow_dev_http` filter. |
 | `build_rate_context( string $action, string $identifier )` | protected | Generates transient key, limit, TTL for rate limiting. | `$action`, `$identifier` | array | Combines action, username, IP. |
