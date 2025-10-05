@@ -13,16 +13,29 @@ class TokenAuthenticator {
     public function authenticate_request( WP_REST_Request $request ) {
         $header = $request->get_header( 'authorization' );
 
+        $server_keys = array(
+            'HTTP_AUTHORIZATION',
+            'REDIRECT_HTTP_AUTHORIZATION',
+            'AUTHORIZATION',
+        );
+
         $this->log_debug(
             'authenticate_request invoked',
             array(
                 'has_header'             => is_string( $header ) && '' !== trim( $header ),
                 'server_header_present'  => isset( $_SERVER['HTTP_AUTHORIZATION'] ),
+                'redirect_header_present' => isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ),
+                'alt_header_present'      => isset( $_SERVER['AUTHORIZATION'] ),
             )
         );
 
-        if ( empty( $header ) && isset( $_SERVER['HTTP_AUTHORIZATION'] ) ) {
-            $header = (string) wp_unslash( $_SERVER['HTTP_AUTHORIZATION'] );
+        if ( empty( $header ) ) {
+            foreach ( $server_keys as $server_key ) {
+                if ( isset( $_SERVER[ $server_key ] ) && '' !== trim( (string) $_SERVER[ $server_key ] ) ) {
+                    $header = (string) wp_unslash( $_SERVER[ $server_key ] );
+                    break;
+                }
+            }
         }
 
         if ( ! is_string( $header ) || '' === trim( $header ) ) {
