@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.57
+Stable tag: 0.3.58
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.58 =
+* Reduce memory usage when reading membership product data by loading WooCommerce product IDs and metadata on demand instead of instantiating every product object at once.
+
 = 0.3.57 =
 * Automatically authenticate REST requests that include bearer tokens so WooCommerce and other protected endpoints honour the Password Login API tokens issued by `/gn/v1/login`.
 
