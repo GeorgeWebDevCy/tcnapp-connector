@@ -11,39 +11,136 @@ class TokenAuthenticator {
      * @return int|WP_Error Returns the authenticated user ID on success, 0 when no token is present, or WP_Error for invalid tokens.
      */
     public function authenticate_request( WP_REST_Request $request ) {
-        $header = $request->get_header( 'authorization' );
-
-        $server_keys = array(
-            'HTTP_AUTHORIZATION',
-            'REDIRECT_HTTP_AUTHORIZATION',
-            'AUTHORIZATION',
-        );
+        $raw_header = $request->get_header( 'authorization' );
+        $header     = $this->resolve_authorization_header( $raw_header );
 
         $this->log_debug(
             'authenticate_request invoked',
             array(
-                'has_header'             => is_string( $header ) && '' !== trim( $header ),
+                'has_header'             => is_string( $raw_header ) && '' !== trim( $raw_header ),
                 'server_header_present'  => isset( $_SERVER['HTTP_AUTHORIZATION'] ),
                 'redirect_header_present' => isset( $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ),
                 'alt_header_present'      => isset( $_SERVER['AUTHORIZATION'] ),
             )
         );
 
-        if ( empty( $header ) ) {
-            foreach ( $server_keys as $server_key ) {
-                if ( isset( $_SERVER[ $server_key ] ) && '' !== trim( (string) $_SERVER[ $server_key ] ) ) {
-                    $header = (string) wp_unslash( $_SERVER[ $server_key ] );
-                    break;
-                }
-            }
-        }
-
-        if ( ! is_string( $header ) || '' === trim( $header ) ) {
+        if ( '' === $header ) {
             $this->log_debug( 'authenticate_request missing authorization header' );
 
             return 0;
         }
 
+        return $this->authenticate_with_header( $header );
+    }
+
+    /**
+     * Hook into WordPress authentication and honour bearer tokens for REST requests.
+     *
+     * @param int|false $user_id Current user ID resolved by WordPress.
+     * @return int|false
+     */
+    public function determine_current_user( $user_id ) {
+        if ( $user_id ) {
+            return $user_id;
+        }
+
+        if ( ! defined( 'REST_REQUEST' ) || ! REST_REQUEST ) {
+            return $user_id;
+        }
+
+        $header = $this->resolve_authorization_header( '' );
+        if ( '' === $header ) {
+            return $user_id;
+        }
+
+        $token = $this->extract_token_from_header( $header );
+        if ( is_wp_error( $token ) ) {
+            return $user_id;
+        }
+
+        $result = $this->authenticate_with_token( $token );
+
+        if ( is_wp_error( $result ) || $result <= 0 ) {
+            return $user_id;
+        }
+
+        $this->log_debug(
+            'determine_current_user authenticated via bearer token',
+            array(
+                'user_id'    => $result,
+                'token_hash' => md5( $token ),
+            )
+        );
+
+        return $result;
+    }
+
+    /**
+     * Register WordPress hooks for automatic bearer token authentication.
+     */
+    public function register_hooks(): void {
+        add_filter( 'determine_current_user', array( $this, 'determine_current_user' ), 20 );
+    }
+
+    /**
+     * Retrieve the payload for a login hand-off token.
+     *
+     * @return array<string, mixed>|false
+     */
+    protected function get_login_token_payload( string $token_hash ) {
+        $payload = get_transient( PasswordLoginService::TOKEN_PREFIX . $token_hash );
+
+        if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
+            $this->log_debug(
+                'authenticate_request login token payload missing or expired',
+                array( 'token_hash' => $token_hash )
+            );
+
+            return false;
+        }
+
+        return $payload;
+    }
+
+    /**
+     * Resolve an authorization header from the REST request or PHP globals.
+     */
+    protected function resolve_authorization_header( $header ): string {
+        if ( is_string( $header ) && '' !== trim( $header ) ) {
+            return trim( (string) $header );
+        }
+
+        foreach ( $this->get_server_header_keys() as $server_key ) {
+            if ( isset( $_SERVER[ $server_key ] ) && '' !== trim( (string) $_SERVER[ $server_key ] ) ) {
+                return trim( (string) wp_unslash( $_SERVER[ $server_key ] ) );
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Attempt to authenticate a request using a raw Authorization header value.
+     *
+     * @return int|WP_Error
+     */
+    protected function authenticate_with_header( string $header ) {
+        $token = $this->extract_token_from_header( $header );
+
+        if ( is_wp_error( $token ) ) {
+            return $token;
+        }
+
+        return $this->authenticate_with_token( $token );
+    }
+
+    /**
+     * Extract the bearer token from a header string.
+     *
+     * @param string $header Authorization header value.
+     * @return string|WP_Error
+     */
+    protected function extract_token_from_header( string $header ) {
         if ( ! preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
             $this->log_debug(
                 'authenticate_request header missing bearer token prefix',
@@ -68,6 +165,16 @@ class TokenAuthenticator {
             );
         }
 
+        return $token;
+    }
+
+    /**
+     * Authenticate the resolved bearer token.
+     *
+     * @param string $token
+     * @return int|WP_Error
+     */
+    protected function authenticate_with_token( string $token ) {
         if ( ! class_exists( PasswordLoginService::class ) ) {
             $this->log_debug( 'authenticate_request PasswordLoginService class missing' );
 
@@ -128,23 +235,16 @@ class TokenAuthenticator {
     }
 
     /**
-     * Retrieve the payload for a login hand-off token.
+     * Return the list of server header keys to inspect for authorization values.
      *
-     * @return array<string, mixed>|false
+     * @return array<int, string>
      */
-    protected function get_login_token_payload( string $token_hash ) {
-        $payload = get_transient( PasswordLoginService::TOKEN_PREFIX . $token_hash );
-
-        if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
-            $this->log_debug(
-                'authenticate_request login token payload missing or expired',
-                array( 'token_hash' => $token_hash )
-            );
-
-            return false;
-        }
-
-        return $payload;
+    protected function get_server_header_keys(): array {
+        return array(
+            'HTTP_AUTHORIZATION',
+            'REDIRECT_HTTP_AUTHORIZATION',
+            'AUTHORIZATION',
+        );
     }
 
     /**

@@ -9,6 +9,10 @@ final class TokenAuthenticatorTest extends TestCase {
         parent::setUp();
         $_SERVER = array();
         unset( $GLOBALS['current_user_id'] );
+
+        if ( ! defined( 'REST_REQUEST' ) ) {
+            define( 'REST_REQUEST', true );
+        }
     }
 
     public function test_authenticates_with_redirect_header_fallback(): void {
@@ -63,6 +67,18 @@ final class TokenAuthenticatorTest extends TestCase {
         $result = $authenticator->authenticate_request( $request );
 
         $this->assertSame( 'WP_Error', get_class( $result ) );
+    }
+
+    public function test_determine_current_user_sets_user_from_bearer_token(): void {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Bearer server-token';
+
+        $authenticator = $this->create_authenticator_expectation( 'server-token' );
+
+        $result = $authenticator->determine_current_user( 0 );
+
+        $this->assertSame( 123, $result );
+        $this->assertSame( 123, $GLOBALS['current_user_id'] ?? null );
+        $this->assertContains( md5( 'server-token' ), $authenticator->received_token_hashes );
     }
 
     private function create_authenticator_expectation( string $expected_token ): TokenAuthenticator {

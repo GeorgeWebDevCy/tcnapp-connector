@@ -52,6 +52,7 @@ class Plugin {
 
     protected function register_services(): void {
         $token_authenticator = new TokenAuthenticator();
+        $token_authenticator->register_hooks();
 
         $this->services[] = new MembershipModule( $this->modules, $token_authenticator );
         $this->services[] = new ActivityMonitor();
