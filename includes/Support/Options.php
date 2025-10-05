@@ -405,7 +405,7 @@ class Options {
         return array(
             'allowed_origin'    => '',
             'allow_dev_http'    => false,
-            'token_lifetime'    => 15 * MINUTE_IN_SECONDS,
+            'token_lifetime'    => WEEK_IN_SECONDS,
             'rate_limit'        => 10,
             'rate_limit_window' => 5 * MINUTE_IN_SECONDS,
         );

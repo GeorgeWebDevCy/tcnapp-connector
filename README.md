@@ -75,7 +75,7 @@ All endpoints live under `wp-json/gn/v1`:
 
 | Route | Method | Description |
 | ----- | ------ | ----------- |
-| `/login` | POST | Authenticate via username/email + password. Supports `mode=cookie` for same-origin flows or returns a one-time token for cross-origin login hand-offs. Includes rate limiting and token locking via filters. |
+| `/login` | POST | Authenticate via username/email + password. Defaults to seven-day token hand-offs (`mode=token`); switch to `mode=cookie` for same-origin flows that need immediate WordPress cookies. Includes rate limiting and token locking via filters. |
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
@@ -97,6 +97,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.47
+- Switch the mobile login flow to rely on `mode=token` hand-offs and extend the login token lifetime to a full week so members can finish authentication even if the browser redirect is delayed.
 
 ### 0.3.46
 - Enhancement: Expand the API tester presets to cover every REST endpoint, including `/gn/v1/me` and `/gn/v1/log`, so admins can prefill requests for authentication, membership, MLM, and WooCommerce bridges.
