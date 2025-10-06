@@ -6,6 +6,7 @@ use TCN\Platform\Admin\ApiTesterPage;
 use TCN\Platform\Admin\ChecklistPage;
 use TCN\Platform\Admin\LogPage;
 use TCN\Platform\Admin\SettingsPage;
+use TCN\Platform\Auth\JwtAuthEndpoints;
 use TCN\Platform\Auth\PasswordLoginService;
 use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Membership\MembershipModule;
@@ -60,6 +61,7 @@ class Plugin {
 
         if ( $this->modules->is_enabled( Modules::MODULE_AUTH_LOGIN ) ) {
             $this->services[] = new PasswordLoginService( $token_authenticator );
+            $this->services[] = new JwtAuthEndpoints();
         } else {
             PasswordLoginService::register_compatibility_alias();
         }
