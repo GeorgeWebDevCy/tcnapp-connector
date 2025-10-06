@@ -107,7 +107,32 @@ The password login service powers the mobile authentication flow, rate-limits br
   * `log_params` *(array, optional)* – Additional context stored with the log entry.
 * **Success response:** `{ ok: true }` after calling `Support\Logger::log()`.
 
-### 2.2 Profile & Media (`/wp-json/gn/v1/profile/avatar`)
+### 2.2 JWT Compatibility (`/wp-json/jwt-auth/v1/*`)
+
+The upstream **JWT Authentication for WP REST API** plugin exposes REST endpoints that many mobile apps and integrations rely on. TCN Platform now mirrors those routes so you can uninstall the standalone plugin while preserving the same contract.
+
+| Route | Method | Auth | Description |
+| --- | --- | --- | --- |
+| `/jwt-auth/v1/token` | POST | Public | Exchange a username/password for a signed JWT. |
+| `/jwt-auth/v1/token/refresh` | POST | Bearer token | Refresh an existing JWT and receive a new token. |
+| `/jwt-auth/v1/token/validate` | POST | Bearer token | Validate a JWT and confirm it is still active. |
+
+#### `POST /wp-json/jwt-auth/v1/token`
+* **Body**: `username`, `password` (required).
+* **Response**: `{ token, user_email, user_nicename, user_display_name, expires_in }`.
+* **Notes**: Mirrors the behaviour of the legacy plugin including filter hooks such as `jwt_auth_token_before_dispatch`.
+
+#### `POST /wp-json/jwt-auth/v1/token/refresh`
+* **Headers**: `Authorization: Bearer <token>` (or `token` request parameter).
+* **Response**: Same payload as the login endpoint with a newly-issued JWT.
+* **Notes**: Accepts expired tokens for refresh as long as the signature remains valid and the user still exists.
+
+#### `POST /wp-json/jwt-auth/v1/token/validate`
+* **Headers**: `Authorization: Bearer <token>` (or `token` request parameter).
+* **Response**: `{ code: 'jwt_auth_valid_token', message, data: { status: 200 } }` when valid.
+* **Notes**: Returns `jwt_auth_expired_token` or `jwt_auth_invalid_token` errors if the JWT is no longer valid.
+
+### 2.3 Profile & Media (`/wp-json/gn/v1/profile/avatar`)
 
 The profile endpoints let authenticated members update their avatar through the REST API. Authentication accepts either the WordPress cookie session or the bearer token issued by `/login`.
 
@@ -123,7 +148,7 @@ The profile endpoints let authenticated members update their avatar through the 
   * Upload validation issues → `400 tcn_avatar_missing`, `400/413/415 tcn_avatar_upload_error`, or `415 tcn_avatar_invalid_type`.
   * Attempting to upload for another user → `403 tcn_rest_forbidden`.
 
-### 2.3 Membership & MLM (`/wp-json/tcn-mlm/v1/*`, `/wp-json/gn/v1/memberships/*`)
+### 2.4 Membership & MLM (`/wp-json/tcn-mlm/v1/*`, `/wp-json/gn/v1/memberships/*`)
 
 Membership routes expose the member profile, genealogy tree, commission ledger, and upgrade flows. They all reuse the Password Login bearer token via `MembershipModule::rest_require_login()` unless marked public.
 
@@ -192,7 +217,7 @@ Returns `{ summary: {...}, ledger: [...] }` where `summary` mirrors the totals d
 * **Validation:** Confirms the plan exists, Stripe is configured when needed, the payment intent status is in `succeeded|processing|requires_capture`, the amount and currency match, and the metadata `plan` matches the request. Any mismatch returns a `409` error. Missing auth returns `401`.
 * **Success response:** `{ success: true, level: plan }` after assigning the sponsor, updating `_tcn_membership_level`, and recording commissions.【F:includes/Membership/MembershipModule.php†L480-L552】
 
-### 2.4 WooCommerce Bridges (`/wp-json/gn/v1/customers`, `/wp-json/gn/v1/orders`)
+### 2.5 WooCommerce Bridges (`/wp-json/gn/v1/customers`, `/wp-json/gn/v1/orders`)
 
 These endpoints bridge mobile clients to WooCommerce without exposing the entire WooCommerce REST API. Authentication succeeds when the requester can `manage_woocommerce` or presents a valid consumer key/secret pair (via Basic auth header or `consumer_key`/`consumer_secret` parameters). Keys must have `write` or `read_write` permissions; the user associated with the key is temporarily set as the current user for capability checks.【F:includes/Rest/WooCommerceEndpoints.php†L19-L131】【F:includes/Rest/WooCommerceEndpoints.php†L136-L214】
 
