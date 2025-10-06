@@ -385,6 +385,9 @@ class ApiTesterPage {
         $commissions_url  = home_url( '/wp-json/tcn-mlm/v1/commissions' );
         $customer_url     = home_url( '/wp-json/gn/v1/customers' );
         $orders_url       = home_url( '/wp-json/gn/v1/orders' );
+        $jwt_token_url    = home_url( '/wp-json/jwt-auth/v1/token' );
+        $jwt_refresh_url  = home_url( '/wp-json/jwt-auth/v1/token/refresh' );
+        $jwt_validate_url = home_url( '/wp-json/jwt-auth/v1/token/validate' );
 
         return array(
             array(
@@ -409,6 +412,88 @@ class ApiTesterPage {
                         'user'       => array(
                             'id'    => 123,
                             'email' => 'demo@example.com',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $jwt_token_url,
+                'description' => __( 'Issue a JWT compatible with the legacy jwt-auth plugin.', 'tcnapp-connector' ),
+                'note'        => __( 'Public endpoint that mirrors “JWT Authentication for WP REST API” responses.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode( array( 'Content-Type' => 'application/json' ), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'username' => 'demo@example.com',
+                        'password' => 'secret-password',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'token'             => 'example.jwt.token',
+                        'user_email'        => 'demo@example.com',
+                        'user_nicename'     => 'demo',
+                        'user_display_name' => 'Demo User',
+                        'expires_in'        => 86400,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $jwt_refresh_url,
+                'description' => __( 'Refresh a JWT using the compatibility endpoints.', 'tcnapp-connector' ),
+                'note'        => __( 'Send the existing token in the Authorization header or token parameter.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type'  => 'application/json',
+                        'Authorization' => 'Bearer paste-jwt-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'token' => 'paste-jwt-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'token'             => 'refreshed.jwt.token',
+                        'user_email'        => 'demo@example.com',
+                        'user_nicename'     => 'demo',
+                        'user_display_name' => 'Demo User',
+                        'expires_in'        => 86400,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $jwt_validate_url,
+                'description' => __( 'Validate a JWT and confirm it is still active.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires the JWT in the Authorization header or token body parameter.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type'  => 'application/json',
+                        'Authorization' => 'Bearer paste-jwt-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'token' => 'paste-jwt-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'code'    => 'jwt_auth_valid_token',
+                        'message' => __( 'Token is valid.', 'tcnapp-connector' ),
+                        'data'    => array(
+                            'status' => 200,
                         ),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES

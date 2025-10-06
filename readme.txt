@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.59
+Stable tag: 0.3.60
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+= 0.3.60 =
+* Expand the API tester presets to cover every available REST endpoint, including the `/jwt-auth/v1` compatibility routes, so administrators can validate JWT flows alongside the existing GN and MLM examples.
+
 = 0.3.59 =
 * Add `/jwt-auth/v1` compatibility endpoints that mirror the "JWT Authentication for WP REST API" plugin so mobile apps continue to authenticate without additional dependencies.
 

@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.60
+- Expand the API tester presets so every REST endpoint—including the `/jwt-auth/v1` compatibility routes—can be populated and exercised directly from the WordPress dashboard.
+
 ### 0.3.59
 - Mirror the `jwt-auth/v1` REST endpoints from the standalone JWT Authentication plugin so existing clients can obtain, refresh, and validate JWTs without additional dependencies.
 

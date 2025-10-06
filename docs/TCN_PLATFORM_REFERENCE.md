@@ -514,4 +514,4 @@ The tables below enumerate every method, its visibility, parameters, return valu
 
 ---
 
-With this reference and the expanded API tester presets, every endpoint (including WooCommerce bridges) can be exercised in seconds from within WordPress. Combine the method tables with your IDE or code reviews to trace hooks, REST callbacks, and WooCommerce touch points without hunting through the source.
+With this reference and the expanded API tester presets, every endpoint (including WooCommerce bridges and the JWT compatibility routes) can be exercised in seconds from within WordPress. Combine the method tables with your IDE or code reviews to trace hooks, REST callbacks, and WooCommerce touch points without hunting through the source.
