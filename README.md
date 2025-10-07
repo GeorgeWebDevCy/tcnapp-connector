@@ -109,6 +109,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.70
+- Enforce the same HTTPS checks used by the login and change password endpoints when uploading avatars, while still honouring the `gn_password_api_allow_dev_http` development override filter.【F:includes/Rest/ProfileEndpoints.php†L49-L120】【F:includes/Rest/ProfileEndpoints.php†L520-L537】
+- When avatar uploads rely on bearer tokens, set the current user so Media Library operations run under the authenticated account.【F:includes/Rest/ProfileEndpoints.php†L95-L118】
+
 ### 0.3.69
 - Allow `/gn/v1/profile/avatar` requests to supply an `avatar_url` so remote images are downloaded, validated, and stored in the Media Library alongside traditional file uploads.【F:includes/Rest/ProfileEndpoints.php†L150-L360】
 - Mirror WP User Avatar metadata when profile photos are updated and honour avatars created via that plugin when building REST payloads or `get_avatar` responses.【F:includes/Rest/ProfileEndpoints.php†L362-L520】
