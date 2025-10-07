@@ -51,6 +51,12 @@ class ProfileEndpoints {
                     'permission_callback' => array( $this, 'permissions_check' ),
                     'args'                => array(),
                 ),
+                array(
+                    'methods'             => WP_REST_Server::DELETABLE,
+                    'callback'            => array( $this, 'handle_avatar_delete' ),
+                    'permission_callback' => array( $this, 'permissions_check' ),
+                    'args'                => array(),
+                ),
             )
         );
     }
@@ -451,6 +457,64 @@ class ProfileEndpoints {
             array(
                 'user_id'       => $user_id,
                 'attachment_id' => $attachment_id,
+            )
+        );
+
+        return $user_response;
+    }
+
+    /**
+     * Remove a user's uploaded avatar and return the refreshed profile payload.
+     */
+    public function handle_avatar_delete( WP_REST_Request $request ) {
+        if ( method_exists( $request, 'get_attribute' ) ) {
+            $user_id = (int) $request->get_attribute( 'tcn_authenticated_user_id' );
+        } else {
+            $user_id = (int) $request->get_param( 'tcn_authenticated_user_id' );
+        }
+
+        if ( $user_id <= 0 ) {
+            $user_id = get_current_user_id();
+        }
+
+        $this->log_debug(
+            'handle_avatar_delete invoked',
+            array(
+                'resolved_user_id' => $user_id,
+            )
+        );
+
+        if ( $user_id <= 0 ) {
+            $this->log_debug( 'handle_avatar_delete returning unauthorized because no user ID was resolved' );
+
+            return new WP_Error(
+                'tcn_rest_unauthorized',
+                __( 'Authentication is required to delete an avatar.', 'tcnapp-connector' ),
+                array( 'status' => rest_authorization_required_code() )
+            );
+        }
+
+        $this->clear_avatar_metadata( $user_id );
+
+        clean_user_cache( $user_id );
+
+        $user_response = $this->prepare_user_response( $request );
+        if ( is_wp_error( $user_response ) ) {
+            $this->log_debug(
+                'handle_avatar_delete failed to prepare user response',
+                array(
+                    'error_code'    => $user_response->get_error_code(),
+                    'error_message' => $user_response->get_error_message(),
+                )
+            );
+
+            return $user_response;
+        }
+
+        $this->log_debug(
+            'handle_avatar_delete completed successfully',
+            array(
+                'user_id' => $user_id,
             )
         );
 
@@ -972,6 +1036,35 @@ class ProfileEndpoints {
             __( 'HTTPS is required to access this endpoint.', 'tcnapp-connector' ),
             array( 'status' => 403 )
         );
+    }
+
+    /**
+     * Remove stored avatar metadata for a user.
+     */
+    protected function clear_avatar_metadata( int $user_id ): void {
+        if ( $user_id <= 0 ) {
+            return;
+        }
+
+        $this->log_debug(
+            'clear_avatar_metadata removing avatar meta',
+            array(
+                'user_id' => $user_id,
+            )
+        );
+
+        delete_user_meta( $user_id, '_gn_profile_avatar_id' );
+        delete_user_meta( $user_id, '_gn_profile_avatar_urls' );
+        delete_user_meta( $user_id, 'simple_local_avatar' );
+        delete_user_meta( $user_id, 'wp_user_avatar' );
+        delete_user_meta( $user_id, 'wp_user_avatar_meta' );
+
+        global $wpdb;
+
+        if ( isset( $wpdb ) && method_exists( $wpdb, 'get_blog_prefix' ) ) {
+            $blog_meta_key = $wpdb->get_blog_prefix() . 'user_avatar';
+            delete_user_meta( $user_id, $blog_meta_key );
+        }
     }
 
     /**
