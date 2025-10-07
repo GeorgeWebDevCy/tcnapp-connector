@@ -151,7 +151,11 @@ class ProfileEndpoints {
             $user_id = get_current_user_id();
         }
 
-        $files = array();
+        $files        = array();
+        $avatar_url   = '';
+        $upload       = null;
+        $using_remote = false;
+
         if ( method_exists( $request, 'get_file_params' ) ) {
             $files = (array) $request->get_file_params();
         }
@@ -160,11 +164,18 @@ class ProfileEndpoints {
             $files['avatar'] = $_FILES['avatar'];
         }
 
+        if ( method_exists( $request, 'get_param' ) ) {
+            $avatar_url = trim( (string) $request->get_param( 'avatar_url' ) );
+        } elseif ( isset( $_POST['avatar_url'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $avatar_url = trim( (string) wp_unslash( $_POST['avatar_url'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+        }
+
         $this->log_debug(
             'handle_avatar_upload invoked',
             array(
                 'resolved_user_id' => $user_id,
                 'files_present'    => isset( $files['avatar'] ),
+                'remote_avatar'    => '' !== $avatar_url,
             )
         );
 
@@ -178,19 +189,48 @@ class ProfileEndpoints {
             );
         }
 
-        if ( empty( $files['avatar'] ) ) {
-            $this->log_debug( 'handle_avatar_upload missing avatar file data' );
+        $file = isset( $files['avatar'] ) ? $files['avatar'] : null;
 
-            return new WP_Error(
-                'tcn_avatar_missing',
-                __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
-                array( 'status' => 400 )
-            );
-        }
+        if ( is_array( $file ) ) {
+            $has_tmp_name = isset( $file['tmp_name'] ) && '' !== $file['tmp_name'];
+            $file_error   = isset( $file['error'] ) ? (int) $file['error'] : UPLOAD_ERR_OK;
 
-        $file = $files['avatar'];
+            if ( UPLOAD_ERR_OK !== $file_error ) {
+                if ( '' !== $avatar_url ) {
+                    $file = null;
+                } else {
+                    $this->log_debug(
+                        'handle_avatar_upload received file upload error',
+                        array(
+                            'file_error' => $file_error,
+                        )
+                    );
 
-        if ( ! is_array( $file ) ) {
+                    return new WP_Error(
+                        'tcn_avatar_upload_error',
+                        $this->describe_upload_error( $file_error ),
+                        array( 'status' => 400 )
+                    );
+                }
+            } elseif ( ! $has_tmp_name ) {
+                if ( '' !== $avatar_url ) {
+                    $file = null;
+                } else {
+                    $this->log_debug(
+                        'handle_avatar_upload missing temporary file',
+                        array(
+                            'file_keys' => array_keys( $file ),
+                        )
+                    );
+
+                    return new WP_Error(
+                        'tcn_avatar_missing',
+                        __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
+                        array( 'status' => 400 )
+                    );
+                }
+            }
+        } elseif ( null !== $file && '' === $avatar_url ) {
             $this->log_debug(
                 'handle_avatar_upload received unexpected file payload',
                 array(
@@ -205,61 +245,53 @@ class ProfileEndpoints {
             );
         }
 
-        if ( ! isset( $file['tmp_name'] ) || '' === $file['tmp_name'] ) {
-            $this->log_debug(
-                'handle_avatar_upload missing temporary file',
-                array(
-                    'file_keys' => array_keys( $file ),
-                )
-            );
+        if ( '' !== $avatar_url ) {
+            $upload = $this->download_remote_avatar( $avatar_url );
 
-            return new WP_Error(
-                'tcn_avatar_missing',
-                __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
-                array( 'status' => 400 )
-            );
+            if ( is_wp_error( $upload ) ) {
+                return $upload;
+            }
+
+            $using_remote = true;
         }
 
-        if ( ! empty( $file['error'] ) && UPLOAD_ERR_OK !== (int) $file['error'] ) {
-            $this->log_debug(
-                'handle_avatar_upload received file upload error',
+        if ( ! $using_remote ) {
+            if ( empty( $file ) || ! is_array( $file ) ) {
+                $this->log_debug( 'handle_avatar_upload missing avatar file data' );
+
+                return new WP_Error(
+                    'tcn_avatar_missing',
+                    __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
+                    array( 'status' => 400 )
+                );
+            }
+
+            $upload = wp_handle_upload(
+                $file,
                 array(
-                    'file_error' => (int) $file['error'],
+                    'test_form' => false,
                 )
             );
 
-            return new WP_Error(
-                'tcn_avatar_upload_error',
-                $this->describe_upload_error( (int) $file['error'] ),
-                array( 'status' => 400 )
-            );
+            if ( isset( $upload['error'] ) ) {
+                $this->log_debug(
+                    'handle_avatar_upload wp_handle_upload failed',
+                    array(
+                        'upload_error' => $upload['error'],
+                    )
+                );
+
+                return new WP_Error(
+                    'tcn_avatar_upload_error',
+                    $upload['error'],
+                    array( 'status' => $this->determine_upload_error_status( $upload['error'] ) )
+                );
+            }
         }
 
         require_once ABSPATH . 'wp-admin/includes/file.php';
         require_once ABSPATH . 'wp-admin/includes/image.php';
         require_once ABSPATH . 'wp-admin/includes/post.php';
-
-        $upload = wp_handle_upload(
-            $file,
-            array(
-                'test_form' => false,
-            )
-        );
-
-        if ( isset( $upload['error'] ) ) {
-            $this->log_debug(
-                'handle_avatar_upload wp_handle_upload failed',
-                array(
-                    'upload_error' => $upload['error'],
-                )
-            );
-
-            return new WP_Error(
-                'tcn_avatar_upload_error',
-                $upload['error'],
-                array( 'status' => $this->determine_upload_error_status( $upload['error'] ) )
-            );
-        }
 
         $file_path = isset( $upload['file'] ) ? (string) $upload['file'] : '';
         $file_type = isset( $upload['type'] ) ? (string) $upload['type'] : '';
@@ -377,6 +409,273 @@ class ProfileEndpoints {
     }
 
     /**
+     * Download an avatar from a remote URL and save it to the uploads directory.
+     */
+    protected function download_remote_avatar( string $url ) {
+        $url = trim( $url );
+
+        if ( '' === $url ) {
+            return new WP_Error(
+                'tcn_avatar_missing',
+                __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $parsed = wp_parse_url( $url );
+
+        if ( ! is_array( $parsed ) || empty( $parsed['host'] ) || empty( $parsed['scheme'] ) ) {
+            $this->log_debug(
+                'download_remote_avatar rejecting invalid URL',
+                array(
+                    'avatar_url' => $url,
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_invalid_url',
+                __( 'Provide a valid image URL for the avatar.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $scheme = strtolower( (string) $parsed['scheme'] );
+
+        if ( ! in_array( $scheme, array( 'http', 'https' ), true ) ) {
+            $this->log_debug(
+                'download_remote_avatar rejecting unsupported URL scheme',
+                array(
+                    'avatar_url' => $url,
+                    'scheme'     => $scheme,
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_invalid_url',
+                __( 'Provide a valid image URL for the avatar.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $file_name   = ! empty( $parsed['path'] ) ? wp_basename( $parsed['path'] ) : '';
+        $file_name   = sanitize_file_name( $file_name );
+        $wp_filetype = wp_check_filetype( $file_name, null );
+
+        $response = wp_safe_remote_get(
+            $url,
+            array(
+                'timeout' => 10,
+            )
+        );
+
+        if ( is_wp_error( $response ) ) {
+            $this->log_debug(
+                'download_remote_avatar request failed',
+                array(
+                    'avatar_url' => $url,
+                    'error'      => $response->get_error_message(),
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to download the remote avatar image.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $status_code = (int) wp_remote_retrieve_response_code( $response );
+
+        if ( 200 !== $status_code ) {
+            $this->log_debug(
+                'download_remote_avatar received unexpected status',
+                array(
+                    'avatar_url'  => $url,
+                    'status_code' => $status_code,
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to download the remote avatar image.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $body = wp_remote_retrieve_body( $response );
+
+        if ( '' === $body ) {
+            $this->log_debug(
+                'download_remote_avatar empty response body',
+                array(
+                    'avatar_url' => $url,
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to download the remote avatar image.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        $headers = wp_remote_retrieve_headers( $response );
+
+        if ( is_object( $headers ) && method_exists( $headers, 'getAll' ) ) {
+            $headers = $headers->getAll();
+        }
+
+        if ( ! $wp_filetype['type'] && ! empty( $headers ) && is_array( $headers ) ) {
+            if ( isset( $headers['content-disposition'] ) ) {
+                $disposition = $headers['content-disposition'];
+
+                if ( is_array( $disposition ) ) {
+                    $disposition = end( $disposition );
+                }
+
+                if ( is_string( $disposition ) && false !== strpos( $disposition, 'filename=' ) ) {
+                    $filename_parts = explode( 'filename=', $disposition );
+                    $candidate      = end( $filename_parts );
+                    $candidate      = trim( $candidate, "\"'" );
+                    $candidate      = sanitize_file_name( $candidate );
+
+                    if ( '' !== $candidate ) {
+                        $file_name   = $candidate;
+                        $wp_filetype = wp_check_filetype( $file_name, null );
+                    }
+                }
+            }
+
+            if ( ! $wp_filetype['type'] && isset( $headers['content-type'] ) ) {
+                $content_type = $headers['content-type'];
+
+                if ( is_array( $content_type ) ) {
+                    $content_type = end( $content_type );
+                }
+
+                if ( is_string( $content_type ) && 0 === strpos( $content_type, 'image/' ) ) {
+                    $extension   = sanitize_key( substr( $content_type, 6 ) );
+                    $file_name   = 'remote-avatar.' . $extension;
+                    $wp_filetype = wp_check_filetype( $file_name, null );
+                }
+            }
+        }
+
+        if ( '' === $file_name ) {
+            $file_name = 'remote-avatar';
+        }
+
+        $upload = wp_upload_bits( $file_name, '', $body );
+
+        if ( ! empty( $upload['error'] ) ) {
+            $this->log_debug(
+                'download_remote_avatar failed to write file',
+                array(
+                    'avatar_url' => $url,
+                    'error'      => $upload['error'],
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                $upload['error'],
+                array( 'status' => 500 )
+            );
+        }
+
+        $file_path = isset( $upload['file'] ) ? (string) $upload['file'] : '';
+
+        if ( '' === $file_path ) {
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to process the uploaded file.', 'tcnapp-connector' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        $mime_type = $wp_filetype['type'];
+
+        if ( ! $mime_type ) {
+            $checked = wp_check_filetype( $file_path );
+
+            if ( ! empty( $checked['type'] ) ) {
+                $mime_type = $checked['type'];
+            }
+        }
+
+        if ( ! $mime_type || 0 !== strpos( $mime_type, 'image/' ) ) {
+            wp_delete_file( $file_path );
+
+            return new WP_Error(
+                'tcn_avatar_invalid_type',
+                __( 'The uploaded file must be a valid image.', 'tcnapp-connector' ),
+                array( 'status' => 415 )
+            );
+        }
+
+        $filesize = filesize( $file_path );
+
+        if ( ! $filesize ) {
+            wp_delete_file( $file_path );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to process the uploaded file.', 'tcnapp-connector' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        $upload['type'] = $mime_type;
+
+        $this->log_debug(
+            'download_remote_avatar stored remote image',
+            array(
+                'avatar_url' => $url,
+                'file_path'  => $file_path,
+                'mime_type'  => $mime_type,
+            )
+        );
+
+        return $upload;
+    }
+
+    /**
+     * Mirror avatar metadata expected by the WP User Avatar plugin.
+     */
+    protected function sync_wp_user_avatar_meta( int $user_id, int $attachment_id, array $avatar_urls ): void {
+        if ( $user_id <= 0 || $attachment_id <= 0 ) {
+            return;
+        }
+
+        global $wpdb;
+
+        $meta_key = $wpdb->get_blog_prefix() . 'user_avatar';
+
+        update_user_meta( $user_id, $meta_key, $attachment_id );
+        update_user_meta( $user_id, 'wp_user_avatar', $attachment_id );
+
+        if ( empty( $avatar_urls ) ) {
+            return;
+        }
+
+        $meta = array( 'media_id' => $attachment_id );
+
+        foreach ( $avatar_urls as $size => $url ) {
+            if ( ! is_string( $url ) || '' === $url ) {
+                continue;
+            }
+
+            if ( ! is_string( $size ) ) {
+                $size = (string) $size;
+            }
+
+            $meta[ $size ] = $url;
+        }
+
+        update_user_meta( $user_id, 'wp_user_avatar_meta', $meta );
+    }
+
+    /**
      * Inject stored avatar URLs into REST user responses.
      */
     public function filter_user_response( $response, $user, $request ) {
@@ -399,6 +698,17 @@ class ProfileEndpoints {
                 $avatar_id   = (int) $simple_avatar['media_id'];
                 $avatar_urls = $this->prepare_avatar_urls( $avatar_id );
             }
+
+            if ( $avatar_id > 0 && ! empty( $avatar_urls ) ) {
+                update_user_meta( $user->ID, '_gn_profile_avatar_id', $avatar_id );
+                update_user_meta( $user->ID, '_gn_profile_avatar_urls', $avatar_urls );
+            }
+        }
+
+        if ( empty( $avatar_urls ) ) {
+            $wp_user_avatar = $this->resolve_wp_user_avatar_data( $user->ID );
+            $avatar_id      = $wp_user_avatar['attachment_id'];
+            $avatar_urls    = $wp_user_avatar['urls'];
 
             if ( $avatar_id > 0 && ! empty( $avatar_urls ) ) {
                 update_user_meta( $user->ID, '_gn_profile_avatar_id', $avatar_id );
@@ -598,6 +908,82 @@ class ProfileEndpoints {
     }
 
     /**
+     * Resolve avatar data saved by the WP User Avatar plugin.
+     */
+    protected function resolve_wp_user_avatar_data( int $user_id ): array {
+        if ( $user_id <= 0 ) {
+            return array(
+                'attachment_id' => 0,
+                'urls'          => array(),
+            );
+        }
+
+        global $wpdb;
+
+        $attachment_id = 0;
+        $urls          = array();
+
+        $meta_keys = array(
+            $wpdb->get_blog_prefix() . 'user_avatar',
+            'wp_user_avatar',
+            'wp_user_avatar_meta',
+        );
+
+        foreach ( $meta_keys as $meta_key ) {
+            $meta_value = get_user_meta( $user_id, $meta_key, true );
+
+            if ( is_array( $meta_value ) ) {
+                if ( isset( $meta_value['media_id'] ) ) {
+                    $candidate = (int) $meta_value['media_id'];
+
+                    if ( $candidate > 0 ) {
+                        $attachment_id = $candidate;
+                    }
+                }
+
+                if ( empty( $urls ) ) {
+                    foreach ( $meta_value as $key => $value ) {
+                        if ( 'media_id' === $key ) {
+                            continue;
+                        }
+
+                        if ( ! is_string( $key ) ) {
+                            $key = (string) $key;
+                        }
+
+                        if ( is_string( $value ) && '' !== $value ) {
+                            $urls[ $key ] = $value;
+                        }
+                    }
+                }
+
+                if ( $attachment_id > 0 && ! empty( $urls ) ) {
+                    break;
+                }
+            } elseif ( is_scalar( $meta_value ) ) {
+                $candidate = absint( $meta_value );
+
+                if ( $candidate > 0 ) {
+                    $attachment_id = $candidate;
+
+                    if ( 'wp_user_avatar_meta' !== $meta_key ) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( $attachment_id > 0 && empty( $urls ) ) {
+            $urls = $this->prepare_avatar_urls( $attachment_id );
+        }
+
+        return array(
+            'attachment_id' => $attachment_id,
+            'urls'          => $urls,
+        );
+    }
+
+    /**
      * Resolve the best uploaded avatar URL for the given user reference.
      *
      * @param mixed $id_or_email Avatar reference argument passed by WordPress.
@@ -632,6 +1018,17 @@ class ProfileEndpoints {
                 $attachment_id = (int) $simple_avatar['media_id'];
                 $urls          = $this->prepare_avatar_urls( $attachment_id );
             }
+
+            if ( $attachment_id > 0 && ! empty( $urls ) ) {
+                update_user_meta( $user_id, '_gn_profile_avatar_id', $attachment_id );
+                update_user_meta( $user_id, '_gn_profile_avatar_urls', $urls );
+            }
+        }
+
+        if ( empty( $urls ) ) {
+            $wp_user_avatar = $this->resolve_wp_user_avatar_data( $user_id );
+            $attachment_id  = $wp_user_avatar['attachment_id'];
+            $urls           = $wp_user_avatar['urls'];
 
             if ( $attachment_id > 0 && ! empty( $urls ) ) {
                 update_user_meta( $user_id, '_gn_profile_avatar_id', $attachment_id );
