@@ -621,17 +621,25 @@ class ApiTesterPage {
                 'method'      => 'POST',
                 'url'         => $avatar_url,
                 'description' => __( 'Upload a profile photo and refresh the user session payload.', 'tcnapp-connector' ),
-                'note'        => __( 'Requires Authorization: Bearer token or authenticated cookies plus multipart/form-data with an avatar file.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires Authorization: Bearer token or authenticated cookies. Send multipart/form-data with an avatar file or JSON containing avatar_url/avatar_base64.', 'tcnapp-connector' ),
                 'headers'     => wp_json_encode(
                     array(
                         'Authorization' => 'Bearer paste-login-token',
-                        'Content-Type'  => 'multipart/form-data',
+                        'Content-Type'  => 'application/json',
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
                 ) ?: '',
                 'body'        => sprintf(
-                    /* translators: %s: Example REST endpoint URL. */
-                    __( "This endpoint expects multipart/form-data. Example curl command:\n\ncurl -X POST \\\n  -H \"Authorization: Bearer paste-login-token\" \\\n  -F \"avatar=@/path/to/avatar.jpg\" \\\n  \"%s\"", 'tcnapp-connector' ),
+                    /* translators: 1: Example REST endpoint URL for JSON request. 2: Example REST endpoint URL for multipart request. */
+                    __( "JSON example:\n\ncurl -X POST \\\
+  -H \"Authorization: Bearer paste-login-token\" \\\
+  -H \"Content-Type: application/json\" \\\
+  -d '{\"avatar_url\":\"https://example.com/photo.jpg\"}' \\\
+  \"%1$s\"\n\nMultipart example:\n\ncurl -X POST \\\
+  -H \"Authorization: Bearer paste-login-token\" \\\
+  -F \"avatar=@/path/to/avatar.jpg\" \\\
+  \"%2$s\"", 'tcnapp-connector' ),
+                    $avatar_url,
                     $avatar_url
                 ),
                 'response'    => wp_json_encode(

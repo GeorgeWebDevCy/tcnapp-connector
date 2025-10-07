@@ -171,10 +171,13 @@ class ProfileEndpoints {
             $user_id = get_current_user_id();
         }
 
-        $files        = array();
-        $avatar_url   = '';
-        $upload       = null;
-        $using_remote = false;
+        $files           = array();
+        $avatar_url      = '';
+        $avatar_base64   = '';
+        $avatar_mime     = '';
+        $avatar_filename = '';
+        $upload          = null;
+        $using_remote    = false;
 
         if ( method_exists( $request, 'get_file_params' ) ) {
             $files = (array) $request->get_file_params();
@@ -185,9 +188,26 @@ class ProfileEndpoints {
         }
 
         if ( method_exists( $request, 'get_param' ) ) {
-            $avatar_url = trim( (string) $request->get_param( 'avatar_url' ) );
-        } elseif ( isset( $_POST['avatar_url'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
-            $avatar_url = trim( (string) wp_unslash( $_POST['avatar_url'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            $avatar_url      = trim( (string) $request->get_param( 'avatar_url' ) );
+            $avatar_base64   = trim( (string) $request->get_param( 'avatar_base64' ) );
+            $avatar_mime     = trim( (string) $request->get_param( 'avatar_mime' ) );
+            $avatar_filename = trim( (string) $request->get_param( 'avatar_filename' ) );
+        } else {
+            if ( isset( $_POST['avatar_url'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $avatar_url = trim( (string) wp_unslash( $_POST['avatar_url'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            }
+
+            if ( isset( $_POST['avatar_base64'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $avatar_base64 = trim( (string) wp_unslash( $_POST['avatar_base64'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            }
+
+            if ( isset( $_POST['avatar_mime'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $avatar_mime = trim( (string) wp_unslash( $_POST['avatar_mime'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            }
+
+            if ( isset( $_POST['avatar_filename'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+                $avatar_filename = trim( (string) wp_unslash( $_POST['avatar_filename'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+            }
         }
 
         $this->log_debug(
@@ -196,6 +216,7 @@ class ProfileEndpoints {
                 'resolved_user_id' => $user_id,
                 'files_present'    => isset( $files['avatar'] ),
                 'remote_avatar'    => '' !== $avatar_url,
+                'base64_avatar'    => '' !== $avatar_base64,
             )
         );
 
@@ -267,6 +288,14 @@ class ProfileEndpoints {
 
         if ( '' !== $avatar_url ) {
             $upload = $this->download_remote_avatar( $avatar_url );
+
+            if ( is_wp_error( $upload ) ) {
+                return $upload;
+            }
+
+            $using_remote = true;
+        } elseif ( '' !== $avatar_base64 ) {
+            $upload = $this->store_base64_avatar( $avatar_base64, $avatar_mime, $avatar_filename );
 
             if ( is_wp_error( $upload ) ) {
                 return $upload;
@@ -426,6 +455,140 @@ class ProfileEndpoints {
         );
 
         return $user_response;
+    }
+
+    /**
+     * Store an avatar supplied as a base64 encoded string in the uploads directory.
+     */
+    protected function store_base64_avatar( string $data, string $mime = '', string $file_name = '' ) {
+        $data      = trim( $data );
+        $mime      = trim( $mime );
+        $file_name = sanitize_file_name( $file_name );
+
+        if ( '' === $data ) {
+            return new WP_Error(
+                'tcn_avatar_missing',
+                __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        if ( preg_match( '#^data:(.*?);base64,(.*)$#', $data, $matches ) ) {
+            if ( empty( $mime ) && ! empty( $matches[1] ) ) {
+                $mime = trim( (string) $matches[1] );
+            }
+
+            $data = (string) $matches[2];
+        }
+
+        $stripped = preg_replace( '/\s+/', '', $data );
+
+        if ( is_string( $stripped ) ) {
+            $data = $stripped;
+        }
+
+        $data = trim( $data );
+
+        $decoded = base64_decode( $data, true );
+
+        if ( false === $decoded || '' === $decoded ) {
+            $this->log_debug( 'store_base64_avatar failed to decode data' );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to decode the provided avatar image.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
+
+        if ( '' === $file_name ) {
+            if ( '' !== $mime && 0 === strpos( $mime, 'image/' ) ) {
+                $extension = sanitize_key( substr( $mime, 6 ) );
+
+                if ( '' !== $extension ) {
+                    $file_name = sanitize_file_name( 'base64-avatar.' . $extension );
+                }
+            }
+
+            if ( '' === $file_name ) {
+                $file_name = 'base64-avatar';
+            }
+        }
+
+        $wp_filetype = wp_check_filetype( $file_name, null );
+
+        if ( '' === $mime && ! empty( $wp_filetype['type'] ) ) {
+            $mime = $wp_filetype['type'];
+        }
+
+        $upload = wp_upload_bits( $file_name, '', $decoded );
+
+        if ( ! empty( $upload['error'] ) ) {
+            $this->log_debug(
+                'store_base64_avatar failed to write file',
+                array(
+                    'error' => $upload['error'],
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                $upload['error'],
+                array( 'status' => 500 )
+            );
+        }
+
+        $file_path = isset( $upload['file'] ) ? (string) $upload['file'] : '';
+
+        if ( '' === $file_path ) {
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to process the uploaded file.', 'tcnapp-connector' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        if ( '' === $mime ) {
+            $checked = wp_check_filetype( $file_path );
+
+            if ( ! empty( $checked['type'] ) ) {
+                $mime = $checked['type'];
+            }
+        }
+
+        if ( '' === $mime || 0 !== strpos( $mime, 'image/' ) ) {
+            wp_delete_file( $file_path );
+
+            return new WP_Error(
+                'tcn_avatar_invalid_type',
+                __( 'The uploaded file must be a valid image.', 'tcnapp-connector' ),
+                array( 'status' => 415 )
+            );
+        }
+
+        $filesize = filesize( $file_path );
+
+        if ( ! $filesize ) {
+            wp_delete_file( $file_path );
+
+            return new WP_Error(
+                'tcn_avatar_upload_error',
+                __( 'Unable to process the uploaded file.', 'tcnapp-connector' ),
+                array( 'status' => 500 )
+            );
+        }
+
+        $upload['type'] = $mime;
+
+        $this->log_debug(
+            'store_base64_avatar stored decoded image',
+            array(
+                'file_path' => $file_path,
+                'mime_type' => $mime,
+            )
+        );
+
+        return $upload;
     }
 
     /**

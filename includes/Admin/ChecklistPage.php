@@ -144,14 +144,14 @@ JSON;
                     <p class="description"><?php esc_html_e( 'Ensure the upload workflow matches the REST endpoint requirements.', 'tcnapp-connector' ); ?></p>
                 </div>
                 <div class="tcn-platform-checklist-content">
-                    <p><?php esc_html_e( 'Route: POST /wp-json/gn/v1/profile/avatar (Authorization: Bearer required). Submit multipart/form-data with an avatar file.', 'tcnapp-connector' ); ?></p>
+                    <p><?php esc_html_e( 'Route: POST /wp-json/gn/v1/profile/avatar (Authorization: Bearer required). Submit multipart/form-data with an avatar file or JSON containing avatar_url/avatar_base64.', 'tcnapp-connector' ); ?></p>
                     <ul>
                         <li><?php esc_html_e( 'Validate the authenticated user from the token.', 'tcnapp-connector' ); ?></li>
                         <li><?php esc_html_e( 'Check file type and size (JPEG, PNG, or WEBP are typical).', 'tcnapp-connector' ); ?></li>
                         <li><?php esc_html_e( 'Store the file with wp_handle_upload or media_sideload_image and update user meta for avatar mappings.', 'tcnapp-connector' ); ?></li>
                         <li><?php esc_html_e( 'Return success JSON containing the refreshed avatar URLs.', 'tcnapp-connector' ); ?></li>
                     </ul>
-                    <p><?php esc_html_e( 'The server rejects requests without an avatar field, with JSON bodies instead of multipart payloads, with oversized or disallowed files, or when the user is not authenticated.', 'tcnapp-connector' ); ?></p>
+                    <p><?php esc_html_e( 'The server rejects requests missing avatar data, using unsupported file types, or targeting other accounts.', 'tcnapp-connector' ); ?></p>
                 </div>
             </section>
 
@@ -190,7 +190,7 @@ JSON;
                     <ul>
                         <li><strong><?php esc_html_e( '401 Unauthorized:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Acquire a fresh token and ensure Authorization headers survive any proxy or CDN.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( '426/400 HTTPS Required:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Enable “Allow Dev HTTP” only on local sites or switch the environment to HTTPS.', 'tcnapp-connector' ); ?></li>
-                        <li><strong><?php esc_html_e( '400 Avatar Upload Errors:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Send multipart/form-data with the avatar field, a filename, and a valid MIME type.', 'tcnapp-connector' ); ?></li>
+                        <li><strong><?php esc_html_e( '400 Avatar Upload Errors:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Provide either a valid avatar file, a reachable avatar_url, or base64 image data plus a MIME type/filename.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( 'Browser CORS Errors:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Set the Allowed Origin exactly, confirm OPTIONS preflight succeeds, and avoid wildcard origins with credentials.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( '413 Payload Too Large:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Increase PHP upload_max_filesize/post_max_size or compress the image before uploading.', 'tcnapp-connector' ); ?></li>
                         <li><strong><?php esc_html_e( 'Capability or Role Restrictions:', 'tcnapp-connector' ); ?></strong> <?php esc_html_e( 'Verify the token resolves to the intended user and that the plugin allows that role to update avatars.', 'tcnapp-connector' ); ?></li>
