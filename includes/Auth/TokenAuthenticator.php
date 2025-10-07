@@ -162,7 +162,13 @@ class TokenAuthenticator {
      * @return string|WP_Error
      */
     protected function extract_token_from_header( string $header ) {
-        if ( ! preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
+        $token = $this->maybe_extract_token_from_supported_header( $header );
+
+        if ( null === $token ) {
+            $token = $this->maybe_extract_token_from_raw_header( $header );
+        }
+
+        if ( null === $token ) {
             if ( ! $this->should_log_non_bearer_header( $header ) ) {
                 return $this->create_auth_error(
                     'tcn_rest_invalid_token',
@@ -181,7 +187,6 @@ class TokenAuthenticator {
             );
         }
 
-        $token = trim( (string) $matches[1] );
         if ( '' === $token ) {
             $this->log_debug( 'authenticate_request extracted empty token' );
 
@@ -192,6 +197,43 @@ class TokenAuthenticator {
         }
 
         return $token;
+    }
+
+    /**
+     * Attempt to extract a token from known Authorization schemes.
+     */
+    protected function maybe_extract_token_from_supported_header( string $header ): ?string {
+        $schemes = array( 'Bearer', 'Token' );
+
+        foreach ( $schemes as $scheme ) {
+            if ( preg_match( '/^' . preg_quote( $scheme, '/' ) . '\s+(.*)$/i', $header, $matches ) ) {
+                return trim( (string) $matches[1] );
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Allow raw Authorization headers that only contain the token value.
+     */
+    protected function maybe_extract_token_from_raw_header( string $header ): ?string {
+        $trimmed = trim( $header );
+
+        if ( '' === $trimmed ) {
+            return null;
+        }
+
+        if ( false !== strpos( $trimmed, ' ' ) || false !== strpos( $trimmed, '\t' ) ) {
+            return null;
+        }
+
+        $this->log_debug(
+            'authenticate_request using raw authorization header as token',
+            array( 'raw_header_preview' => $this->mask_string( $trimmed ) )
+        );
+
+        return $trimmed;
     }
 
     /**
