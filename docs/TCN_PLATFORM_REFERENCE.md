@@ -140,9 +140,9 @@ The profile endpoints let authenticated members update their avatar through the 
 
 * **Purpose:** Upload an image file, store it in the Media Library, attach it to the current user, and return the updated `/wp/v2/users/me` payload.
 * **Authentication:** `rest_require_login` equivalent – cookie session, `X-WP-Nonce`, or bearer token via the `TokenAuthenticator`.
-* **Request:** `multipart/form-data` with an `avatar` file field. Optional query/body attributes (`user_id`, `id`, `user`) are normalised to ensure users can only target their own profile.
-* **Processing:** Validates upload errors, file type (`image/*`), inserts an attachment, generates image sizes, stores `_gn_profile_avatar_id`, `_gn_profile_avatar_urls`, and `simple_local_avatar` meta, then clears the user cache.【F:includes/Rest/ProfileEndpoints.php†L52-L338】
-* **Compatibility:** Syncs metadata expected by the Simple Local Avatars plugin so uploads made via `/gn/v1/profile/avatar` stay visible in its admin UI and vice versa; REST payloads also respect avatars set directly through that plugin.【F:includes/Rest/ProfileEndpoints.php†L288-L520】
+* **Request:** `multipart/form-data` with either an `avatar` file field or an `avatar_url` parameter that points to a remote image. Optional query/body attributes (`user_id`, `id`, `user`) are normalised to ensure users can only target their own profile.【F:includes/Rest/ProfileEndpoints.php†L150-L270】
+* **Processing:** Validates upload errors, downloads remote images when `avatar_url` is provided, enforces the `image/*` MIME check, inserts an attachment, generates image sizes, stores `_gn_profile_avatar_id`, `_gn_profile_avatar_urls`, and `simple_local_avatar` meta, then clears the user cache.【F:includes/Rest/ProfileEndpoints.php†L150-L360】【F:includes/Rest/ProfileEndpoints.php†L362-L520】
+* **Compatibility:** Syncs metadata expected by the Simple Local Avatars and WP User Avatar plugins so uploads made via `/gn/v1/profile/avatar` stay visible in their admin UI and vice versa; REST payloads also respect avatars set directly through those plugins.【F:includes/Rest/ProfileEndpoints.php†L362-L520】
 * **Success response:** REST representation of `/wp/v2/users/me` including merged `avatar_urls` for the generated sizes.【F:includes/Rest/ProfileEndpoints.php†L288-L338】【F:includes/Rest/ProfileEndpoints.php†L400-L427】
 * **Failure cases:**
   * Unauthenticated → `401 tcn_rest_unauthorized`.

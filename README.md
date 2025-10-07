@@ -109,6 +109,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.69
+- Allow `/gn/v1/profile/avatar` requests to supply an `avatar_url` so remote images are downloaded, validated, and stored in the Media Library alongside traditional file uploads.【F:includes/Rest/ProfileEndpoints.php†L150-L360】
+- Mirror WP User Avatar metadata when profile photos are updated and honour avatars created via that plugin when building REST payloads or `get_avatar` responses.【F:includes/Rest/ProfileEndpoints.php†L362-L520】
+
 ### 0.3.65
 - Avoid fatals on legacy WordPress versions by falling back to REST request parameters when attribute helpers are unavailable.
 
