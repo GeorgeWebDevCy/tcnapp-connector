@@ -2,10 +2,13 @@
 namespace TCN\Platform\Rest;
 
 use TCN\Platform\Auth\TokenAuthenticator;
+use WP_Comment;
 use WP_Error;
+use WP_Post;
 use WP_REST_Request;
 use WP_REST_Response;
 use WP_REST_Server;
+use WP_User;
 
 class ProfileEndpoints {
     /**
@@ -23,6 +26,8 @@ class ProfileEndpoints {
     public function register(): void {
         add_action( 'rest_api_init', array( $this, 'register_routes' ) );
         add_filter( 'rest_prepare_user', array( $this, 'filter_user_response' ), 20, 3 );
+        add_filter( 'get_avatar_data', array( $this, 'filter_get_avatar_data' ), 20, 2 );
+        add_filter( 'get_avatar_url', array( $this, 'filter_get_avatar_url' ), 20, 3 );
     }
 
     /**
@@ -398,6 +403,41 @@ class ProfileEndpoints {
         return $response;
     }
 
+    /**
+     * Replace the default avatar data with the uploaded attachment when available.
+     */
+    public function filter_get_avatar_data( array $args, $id_or_email ): array {
+        if ( ! empty( $args['force_default'] ) ) {
+            return $args;
+        }
+
+        $custom_url = $this->resolve_uploaded_avatar_url( $id_or_email, $args );
+
+        if ( $custom_url ) {
+            $args['url']          = $custom_url;
+            $args['found_avatar'] = true;
+        }
+
+        return $args;
+    }
+
+    /**
+     * Replace the default avatar URL with the uploaded attachment when available.
+     */
+    public function filter_get_avatar_url( string $url, $id_or_email, array $args ): string {
+        if ( ! empty( $args['force_default'] ) ) {
+            return $url;
+        }
+
+        $custom_url = $this->resolve_uploaded_avatar_url( $id_or_email, $args );
+
+        if ( $custom_url ) {
+            return $custom_url;
+        }
+
+        return $url;
+    }
+
     protected function authenticate_with_token( WP_REST_Request $request ) {
         if ( ! $this->token_authenticator ) {
             return 0;
@@ -426,6 +466,172 @@ class ProfileEndpoints {
         }
 
         return $urls;
+    }
+
+    /**
+     * Resolve the best uploaded avatar URL for the given user reference.
+     *
+     * @param mixed $id_or_email Avatar reference argument passed by WordPress.
+     */
+    protected function resolve_uploaded_avatar_url( $id_or_email, array $args ): string {
+        $user_id = $this->resolve_avatar_user_id( $id_or_email );
+
+        if ( $user_id <= 0 ) {
+            return '';
+        }
+
+        $attachment_id = (int) get_user_meta( $user_id, '_gn_profile_avatar_id', true );
+
+        if ( $attachment_id <= 0 ) {
+            return '';
+        }
+
+        $urls = get_user_meta( $user_id, '_gn_profile_avatar_urls', true );
+
+        if ( ! is_array( $urls ) || empty( $urls ) ) {
+            $urls = $this->prepare_avatar_urls( $attachment_id );
+
+            if ( ! empty( $urls ) ) {
+                update_user_meta( $user_id, '_gn_profile_avatar_urls', $urls );
+            }
+        }
+
+        if ( empty( $urls ) ) {
+            return '';
+        }
+
+        $size = isset( $args['size'] ) ? (int) $args['size'] : 0;
+
+        if ( $size > 0 ) {
+            $key = (string) $size;
+
+            if ( isset( $urls[ $key ] ) && is_string( $urls[ $key ] ) && '' !== $urls[ $key ] ) {
+                return $this->maybe_apply_avatar_scheme( $urls[ $key ], $args );
+            }
+
+            $closest = $this->find_closest_avatar_url( $urls, $size );
+
+            if ( $closest ) {
+                return $this->maybe_apply_avatar_scheme( $closest, $args );
+            }
+        }
+
+        if ( isset( $urls['full'] ) && is_string( $urls['full'] ) && '' !== $urls['full'] ) {
+            return $this->maybe_apply_avatar_scheme( $urls['full'], $args );
+        }
+
+        foreach ( $urls as $candidate ) {
+            if ( is_string( $candidate ) && '' !== $candidate ) {
+                return $this->maybe_apply_avatar_scheme( $candidate, $args );
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * Determine the most appropriate avatar URL for the requested size.
+     */
+    protected function find_closest_avatar_url( array $urls, int $target_size ): string {
+        $closest_url  = '';
+        $closest_diff = PHP_INT_MAX;
+
+        foreach ( $urls as $size => $candidate ) {
+            if ( 'full' === $size ) {
+                continue;
+            }
+
+            if ( ! is_string( $candidate ) || '' === $candidate ) {
+                continue;
+            }
+
+            $numeric_size = (int) $size;
+
+            if ( $numeric_size <= 0 ) {
+                continue;
+            }
+
+            $difference = abs( $numeric_size - $target_size );
+
+            if ( $difference < $closest_diff ) {
+                $closest_diff = $difference;
+                $closest_url  = $candidate;
+            }
+        }
+
+        return $closest_url;
+    }
+
+    /**
+     * Apply the requested scheme to a resolved avatar URL.
+     */
+    protected function maybe_apply_avatar_scheme( string $url, array $args ): string {
+        if ( '' === $url ) {
+            return '';
+        }
+
+        if ( isset( $args['scheme'] ) && '' !== $args['scheme'] ) {
+            return set_url_scheme( $url, $args['scheme'] );
+        }
+
+        return $url;
+    }
+
+    /**
+     * Resolve a user ID from the avatar reference.
+     *
+     * @param mixed $id_or_email Avatar reference argument passed by WordPress.
+     */
+    protected function resolve_avatar_user_id( $id_or_email ): int {
+        if ( is_numeric( $id_or_email ) ) {
+            return absint( $id_or_email );
+        }
+
+        if ( $id_or_email instanceof WP_User ) {
+            return absint( $id_or_email->ID );
+        }
+
+        if ( $id_or_email instanceof WP_Post ) {
+            return absint( $id_or_email->post_author );
+        }
+
+        if ( $id_or_email instanceof WP_Comment ) {
+            if ( isset( $id_or_email->user_id ) && $id_or_email->user_id > 0 ) {
+                return absint( $id_or_email->user_id );
+            }
+
+            if ( ! empty( $id_or_email->comment_author_email ) ) {
+                $user = get_user_by( 'email', $id_or_email->comment_author_email );
+
+                if ( $user instanceof WP_User ) {
+                    return absint( $user->ID );
+                }
+            }
+
+            return 0;
+        }
+
+        if ( is_object( $id_or_email ) && isset( $id_or_email->user_id ) ) {
+            return absint( $id_or_email->user_id );
+        }
+
+        if ( is_string( $id_or_email ) && '' !== $id_or_email ) {
+            $user = false;
+
+            if ( false !== strpos( $id_or_email, '@' ) ) {
+                $user = get_user_by( 'email', $id_or_email );
+            }
+
+            if ( ! $user ) {
+                $user = get_user_by( 'login', $id_or_email );
+            }
+
+            if ( $user instanceof WP_User ) {
+                return absint( $user->ID );
+            }
+        }
+
+        return 0;
     }
 
     /**
