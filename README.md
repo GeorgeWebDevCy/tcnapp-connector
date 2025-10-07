@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.64
+- Accept avatar uploads from REST requests using parsed file parameters before falling back to PHP superglobals.
+
 ### 0.3.63
 - Guarantee `/wp-json/gn/v1/login` issues a non-empty token string even if custom filters attempt to return invalid data.
 
