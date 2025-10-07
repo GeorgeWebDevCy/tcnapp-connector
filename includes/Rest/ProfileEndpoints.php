@@ -904,7 +904,8 @@ class ProfileEndpoints {
         }
 
         $data = $response->get_data();
-        $data['avatar_urls'] = array_merge( isset( $data['avatar_urls'] ) && is_array( $data['avatar_urls'] ) ? $data['avatar_urls'] : array(), $avatar_urls );
+        $existing = ( isset( $data['avatar_urls'] ) && is_array( $data['avatar_urls'] ) ) ? $data['avatar_urls'] : array();
+        $data['avatar_urls'] = array_replace( $existing, $avatar_urls );
         $response->set_data( $data );
 
         return $response;
