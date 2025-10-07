@@ -293,6 +293,7 @@ class TokenAuthenticator {
             'HTTP_AUTHORIZATION',
             'REDIRECT_HTTP_AUTHORIZATION',
             'AUTHORIZATION',
+            'HTTP_X_AUTHORIZATION',
         );
     }
 
