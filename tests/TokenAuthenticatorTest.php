@@ -87,6 +87,16 @@ final class TokenAuthenticatorTest extends TestCase {
         $this->assertContains( md5( 'server-token' ), $authenticator->received_token_hashes );
     }
 
+    public function test_determine_current_user_ignores_non_bearer_header(): void {
+        $_SERVER['HTTP_AUTHORIZATION'] = 'Basic ZGVtbzp0ZXN0';
+
+        $authenticator = $this->create_authenticator_expectation( 'unused-token' );
+
+        $result = $authenticator->determine_current_user( 0 );
+
+        $this->assertSame( 0, $result );
+    }
+
     private function create_authenticator_expectation( string $expected_token ): TokenAuthenticator {
         return new class( $expected_token ) extends TokenAuthenticator {
             /**

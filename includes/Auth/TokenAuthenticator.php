@@ -143,10 +143,9 @@ class TokenAuthenticator {
     protected function extract_token_from_header( string $header ) {
         if ( ! preg_match( '/Bearer\s+(.*)$/i', $header, $matches ) ) {
             if ( ! $this->should_log_non_bearer_header( $header ) ) {
-                return new WP_Error(
+                return $this->create_auth_error(
                     'tcn_rest_invalid_token',
-                    __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
-                    array( 'status' => rest_authorization_required_code() )
+                    __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
                 );
             }
 
@@ -155,10 +154,9 @@ class TokenAuthenticator {
                 array( 'raw_header_preview' => $this->mask_string( $header ) )
             );
 
-            return new WP_Error(
+            return $this->create_auth_error(
                 'tcn_rest_invalid_token',
-                __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
-                array( 'status' => rest_authorization_required_code() )
+                __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
             );
         }
 
@@ -166,10 +164,9 @@ class TokenAuthenticator {
         if ( '' === $token ) {
             $this->log_debug( 'authenticate_request extracted empty token' );
 
-            return new WP_Error(
+            return $this->create_auth_error(
                 'tcn_rest_invalid_token',
-                __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
-                array( 'status' => rest_authorization_required_code() )
+                __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
             );
         }
 
@@ -212,10 +209,9 @@ class TokenAuthenticator {
         if ( ! class_exists( PasswordLoginService::class ) ) {
             $this->log_debug( 'authenticate_request PasswordLoginService class missing' );
 
-            return new WP_Error(
+            return $this->create_auth_error(
                 'tcn_rest_invalid_token',
-                __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
-                array( 'status' => rest_authorization_required_code() )
+                __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
             );
         }
 
@@ -228,10 +224,9 @@ class TokenAuthenticator {
             $payload    = $this->get_api_token_payload( $token_hash );
 
             if ( false === $payload ) {
-                return new WP_Error(
+                return $this->create_auth_error(
                     'tcn_rest_token_expired',
-                    __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' ),
-                    array( 'status' => rest_authorization_required_code() )
+                    __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' )
                 );
             }
         }
@@ -247,10 +242,9 @@ class TokenAuthenticator {
                 )
             );
 
-            return new WP_Error(
+            return $this->create_auth_error(
                 'tcn_rest_token_expired',
-                __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' ),
-                array( 'status' => rest_authorization_required_code() )
+                __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' )
             );
         }
 
@@ -374,5 +368,43 @@ class TokenAuthenticator {
         }
 
         return substr( $value, 0, 4 ) . '...' . substr( $value, -4 );
+    }
+
+    /**
+     * Create a REST authentication error without triggering recursive status lookups.
+     */
+    protected function create_auth_error( string $code, string $message ): WP_Error {
+        return new WP_Error(
+            $code,
+            $message,
+            array( 'status' => $this->get_authorization_error_status() )
+        );
+    }
+
+    /**
+     * Resolve the authorization error status code with recursion protection.
+     */
+    protected function get_authorization_error_status(): int {
+        static $cached_status = null;
+
+        if ( function_exists( 'doing_filter' ) && doing_filter( 'determine_current_user' ) ) {
+            return null !== $cached_status ? $cached_status : 401;
+        }
+
+        if ( null === $cached_status ) {
+            $status = 401;
+
+            if ( function_exists( 'rest_authorization_required_code' ) ) {
+                $status = (int) rest_authorization_required_code();
+            }
+
+            if ( $status < 400 ) {
+                $status = 401;
+            }
+
+            $cached_status = $status;
+        }
+
+        return null !== $cached_status ? $cached_status : 401;
     }
 }
