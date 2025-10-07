@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.63
+- Guarantee `/wp-json/gn/v1/login` issues a non-empty token string even if custom filters attempt to return invalid data.
+
 ### 0.3.62
 - Prevent recursive authorization status lookups from exhausting PHP memory when REST requests include missing or malformed bearer tokens.
 

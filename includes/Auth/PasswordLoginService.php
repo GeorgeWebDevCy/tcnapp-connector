@@ -555,7 +555,19 @@ class PasswordLoginService {
     protected function issue_login_token( int $user_id ): array {
         $lifetime = apply_filters( 'gn_password_api_login_token_lifetime', (int) $this->settings['token_lifetime'], $user_id );
         $lifetime = max( WEEK_IN_SECONDS, $lifetime );
-        $token    = apply_filters( 'gn_password_api_issue_login_token', wp_generate_password( 48, false ), $user_id, $lifetime );
+
+        $generated = wp_generate_password( 48, false );
+        $token     = apply_filters( 'gn_password_api_issue_login_token', $generated, $user_id, $lifetime );
+
+        if ( ! is_string( $token ) ) {
+            $token = '';
+        }
+
+        $token = trim( $token );
+
+        if ( '' === $token ) {
+            $token = wp_generate_password( 48, false );
+        }
 
         set_transient(
             $this->build_token_key( $token ),
