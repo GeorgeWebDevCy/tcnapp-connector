@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.72
+- Preserve avatar URL size keys when merging stored values into REST responses so numeric indexes like `24`, `48`, and `96` stay aligned with WordPress core expectations.
+
 ### 0.3.71
 - Let `/gn/v1/profile/avatar` accept JSON payloads that either reference a remote `avatar_url` or include `avatar_base64` image data so mobile clients can bypass multipart uploads while keeping Media Library validation in place.【F:includes/Rest/ProfileEndpoints.php†L166-L320】【F:includes/Rest/ProfileEndpoints.php†L470-L612】
 
