@@ -573,21 +573,48 @@ class PasswordLoginService {
     }
 
     protected function issue_api_token( int $user_id ): array {
-        $lifetime = DAY_IN_SECONDS * 7;
-        $token    = wp_generate_password( 64, false );
+        $lifetime = (int) apply_filters( 'gn_password_api_api_token_lifetime', DAY_IN_SECONDS * 7, $user_id );
+        $lifetime = max( HOUR_IN_SECONDS, $lifetime );
+
+        $user = get_user_by( 'id', $user_id );
+
+        $jwt_token  = null;
+        $expires_at = time() + $lifetime;
+
+        if ( $user instanceof WP_User ) {
+            $jwt_token = JwtTokenService::generate_token(
+                $user,
+                array(
+                    'expire' => $expires_at,
+                )
+            );
+        }
+
+        if ( $jwt_token instanceof WP_Error || ! is_array( $jwt_token ) ) {
+            $token_string = wp_generate_password( 64, false );
+        } else {
+            $token_string = $jwt_token['token'];
+            $payload      = $jwt_token['payload'];
+
+            if ( isset( $payload['exp'] ) && (int) $payload['exp'] > 0 ) {
+                $expires_at = (int) $payload['exp'];
+            }
+        }
+
+        $ttl = max( 1, $expires_at - time() );
 
         set_transient(
-            self::API_TOKEN_PREFIX . md5( $token ),
+            self::API_TOKEN_PREFIX . md5( $token_string ),
             array(
                 'user_id' => $user_id,
-                'exp'     => time() + $lifetime,
+                'exp'     => $expires_at,
             ),
-            $lifetime
+            $ttl
         );
 
         return array(
-            'token'      => $token,
-            'expires_in' => $lifetime,
+            'token'      => $token_string,
+            'expires_in' => max( 0, $expires_at - time() ),
         );
     }
 

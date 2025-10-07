@@ -109,6 +109,10 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.61
+- Restore JWT responses for `/wp-json/gn/v1/login` so mobile and third-party clients receive signed bearer tokens again.
+- Refactor the shared JWT helpers into a reusable service consumed by both the password login API and the `/jwt-auth/v1` compatibility routes.
+
 ### 0.3.60
 - Expand the API tester presets so every REST endpoint—including the `/jwt-auth/v1` compatibility routes—can be populated and exercised directly from the WordPress dashboard.
 

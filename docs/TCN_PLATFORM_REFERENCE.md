@@ -38,7 +38,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 #### Shared request & response behaviour
 
 * **Rate limiting:** The login endpoint tracks attempts per `{action}:{identifier}:{IP}` using the configured `rate_limit` and `rate_limit_window` values. Excessive failures return `429 gn_rate_limited` until the TTL expires.【F:includes/Auth/PasswordLoginService.php†L158-L205】【F:includes/Auth/PasswordLoginService.php†L508-L548】
-* **Token lifetime:** `token` (for one-click WordPress login) and `api_token` (for REST bearer auth) both default to seven days and are stored as WordPress transients with matching expiration timestamps.【F:includes/Auth/PasswordLoginService.php†L186-L209】【F:includes/Auth/PasswordLoginService.php†L560-L599】
+* **Token lifetime:** `token` (for one-click WordPress login) and the JWT-backed `api_token` (for REST bearer auth) both default to seven days. The API token is hashed into a transient for validation while the signed JWT payload retains the same expiry.【F:includes/Auth/PasswordLoginService.php†L186-L209】【F:includes/Auth/PasswordLoginService.php†L566-L610】【F:includes/Auth/JwtTokenService.php†L14-L57】
 * **User payload:** Responses include `id`, `username`, `email`, `display_name`, `first_name`, `last_name`, `membership_level`, `sponsor_id`, and optional `woocommerce` credentials (consumer key/secret + base64 `authorization`).【F:includes/Auth/PasswordLoginService.php†L456-L485】
 * **Error format:** Failures are returned as `WP_Error` with descriptive messages and HTTP codes (400 for validation, 401/403 for auth, 404 for unknown users, 409 for conflicts, 429 for rate limiting).【F:includes/Auth/PasswordLoginService.php†L146-L237】【F:includes/Auth/PasswordLoginService.php†L260-L392】
 
