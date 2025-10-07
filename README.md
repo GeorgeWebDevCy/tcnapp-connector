@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.65
+- Avoid fatals on legacy WordPress versions by falling back to REST request parameters when attribute helpers are unavailable.
+
 ### 0.3.64
 - Accept avatar uploads from REST requests using parsed file parameters before falling back to PHP superglobals.
 
