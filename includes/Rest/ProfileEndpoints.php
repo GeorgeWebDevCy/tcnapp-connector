@@ -92,7 +92,11 @@ class ProfileEndpoints {
             );
         }
 
-        $request->set_attribute( 'tcn_authenticated_user_id', $user_id );
+        if ( method_exists( $request, 'set_attribute' ) ) {
+            $request->set_attribute( 'tcn_authenticated_user_id', $user_id );
+        } else {
+            $request->set_param( 'tcn_authenticated_user_id', $user_id );
+        }
 
         if ( current_user_can( 'upload_files' ) ) {
             $this->log_debug(
@@ -132,7 +136,11 @@ class ProfileEndpoints {
      * Handle the avatar upload and return the updated user payload.
      */
     public function handle_avatar_upload( WP_REST_Request $request ) {
-        $user_id = (int) $request->get_attribute( 'tcn_authenticated_user_id' );
+        if ( method_exists( $request, 'get_attribute' ) ) {
+            $user_id = (int) $request->get_attribute( 'tcn_authenticated_user_id' );
+        } else {
+            $user_id = (int) $request->get_param( 'tcn_authenticated_user_id' );
+        }
 
         if ( $user_id <= 0 ) {
             $user_id = get_current_user_id();
