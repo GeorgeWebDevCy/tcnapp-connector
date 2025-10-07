@@ -343,14 +343,12 @@ class ProfileEndpoints {
 
         update_user_meta( $user_id, '_gn_profile_avatar_id', $attachment_id );
         update_user_meta( $user_id, '_gn_profile_avatar_urls', $avatar_urls );
-        update_user_meta(
-            $user_id,
-            'simple_local_avatar',
-            array(
-                'full'     => isset( $avatar_urls['full'] ) ? $avatar_urls['full'] : wp_get_attachment_url( $attachment_id ),
-                'media_id' => $attachment_id,
-            )
-        );
+
+        $simple_local_avatar = $this->build_simple_local_avatar_meta( $attachment_id, $avatar_urls );
+
+        if ( ! empty( $simple_local_avatar ) ) {
+            update_user_meta( $user_id, 'simple_local_avatar', $simple_local_avatar );
+        }
 
         clean_user_cache( $user_id );
 
@@ -386,12 +384,28 @@ class ProfileEndpoints {
             return $response;
         }
 
-        $avatar_id = (int) get_user_meta( $user->ID, '_gn_profile_avatar_id', true );
-        if ( $avatar_id <= 0 ) {
-            return $response;
+        $avatar_id   = (int) get_user_meta( $user->ID, '_gn_profile_avatar_id', true );
+        $avatar_urls = array();
+
+        if ( $avatar_id > 0 ) {
+            $avatar_urls = $this->prepare_avatar_urls( $avatar_id );
         }
 
-        $avatar_urls = $this->prepare_avatar_urls( $avatar_id );
+        if ( empty( $avatar_urls ) ) {
+            $simple_avatar = get_user_meta( $user->ID, 'simple_local_avatar', true );
+            $avatar_urls   = $this->normalise_simple_local_avatar_urls( $simple_avatar );
+
+            if ( $avatar_id <= 0 && is_array( $simple_avatar ) && ! empty( $simple_avatar['media_id'] ) ) {
+                $avatar_id   = (int) $simple_avatar['media_id'];
+                $avatar_urls = $this->prepare_avatar_urls( $avatar_id );
+            }
+
+            if ( $avatar_id > 0 && ! empty( $avatar_urls ) ) {
+                update_user_meta( $user->ID, '_gn_profile_avatar_id', $avatar_id );
+                update_user_meta( $user->ID, '_gn_profile_avatar_urls', $avatar_urls );
+            }
+        }
+
         if ( empty( $avatar_urls ) ) {
             return $response;
         }
@@ -450,19 +464,134 @@ class ProfileEndpoints {
      * Prepare avatar URLs for the response payload.
      */
     protected function prepare_avatar_urls( int $attachment_id ): array {
+        if ( $attachment_id <= 0 ) {
+            return array();
+        }
+
         $urls  = array();
         $sizes = array( 24, 48, 96, 192, 256 );
 
         foreach ( $sizes as $size ) {
             $image = wp_get_attachment_image_src( $attachment_id, array( $size, $size ) );
+
             if ( is_array( $image ) && ! empty( $image[0] ) ) {
                 $urls[ (string) $size ] = $image[0];
             }
         }
 
         $full = wp_get_attachment_url( $attachment_id );
+
         if ( $full ) {
             $urls['full'] = $full;
+        }
+
+        return $urls;
+    }
+
+    /**
+     * Build metadata compatible with the Simple Local Avatars plugin.
+     */
+    protected function build_simple_local_avatar_meta( int $attachment_id, array $avatar_urls ): array {
+        if ( $attachment_id <= 0 || empty( $avatar_urls ) ) {
+            return array();
+        }
+
+        $meta = array(
+            'media_id' => $attachment_id,
+        );
+
+        foreach ( $avatar_urls as $size => $url ) {
+            if ( 'media_id' === $size ) {
+                continue;
+            }
+
+            if ( ! is_string( $size ) ) {
+                $size = (string) $size;
+            }
+
+            if ( ! is_string( $url ) || '' === $url ) {
+                continue;
+            }
+
+            $meta[ $size ] = $url;
+
+            if ( substr( $size, -5 ) === '_path' ) {
+                continue;
+            }
+
+            if ( 'full' === $size ) {
+                continue;
+            }
+
+            $path_key = $size . '_path';
+
+            if ( isset( $avatar_urls[ $path_key ] ) && is_string( $avatar_urls[ $path_key ] ) ) {
+                $meta[ $path_key ] = $avatar_urls[ $path_key ];
+                continue;
+            }
+
+            $intermediate = image_get_intermediate_size( $attachment_id, is_numeric( $size ) ? array( (int) $size, (int) $size ) : $size );
+
+            if ( is_array( $intermediate ) && ! empty( $intermediate['file'] ) ) {
+                $full_path = get_attached_file( $attachment_id );
+
+                if ( $full_path ) {
+                    $meta[ $path_key ] = path_join( dirname( $full_path ), $intermediate['file'] );
+                }
+            }
+        }
+
+        if ( ! isset( $meta['full'] ) ) {
+            $full = wp_get_attachment_url( $attachment_id );
+
+            if ( $full ) {
+                $meta['full'] = $full;
+            }
+        }
+
+        if ( ! isset( $meta['full_path'] ) ) {
+            $full_path = get_attached_file( $attachment_id );
+
+            if ( $full_path ) {
+                $meta['full_path'] = $full_path;
+            }
+        }
+
+        return $meta;
+    }
+
+    /**
+     * Normalise metadata saved by the Simple Local Avatars plugin into a URL map.
+     *
+     * @param mixed $meta Stored user meta value.
+     */
+    protected function normalise_simple_local_avatar_urls( $meta ): array {
+        if ( ! is_array( $meta ) || empty( $meta ) ) {
+            return array();
+        }
+
+        $urls = array();
+
+        foreach ( $meta as $key => $value ) {
+            if ( ! is_string( $key ) ) {
+                $key = (string) $key;
+            }
+
+            if ( 'media_id' === $key ) {
+                continue;
+            }
+
+            if ( is_string( $value ) && '' !== $value ) {
+                $urls[ $key ] = $value;
+            }
+        }
+
+        if ( empty( $urls ) && ! empty( $meta['media_id'] ) ) {
+            $attachment_id = (int) $meta['media_id'];
+
+            if ( $attachment_id > 0 ) {
+                return $this->prepare_avatar_urls( $attachment_id );
+            }
         }
 
         return $urls;
@@ -481,17 +610,31 @@ class ProfileEndpoints {
         }
 
         $attachment_id = (int) get_user_meta( $user_id, '_gn_profile_avatar_id', true );
+        $urls          = array();
 
-        if ( $attachment_id <= 0 ) {
-            return '';
+        if ( $attachment_id > 0 ) {
+            $urls = get_user_meta( $user_id, '_gn_profile_avatar_urls', true );
+
+            if ( ! is_array( $urls ) || empty( $urls ) ) {
+                $urls = $this->prepare_avatar_urls( $attachment_id );
+
+                if ( ! empty( $urls ) ) {
+                    update_user_meta( $user_id, '_gn_profile_avatar_urls', $urls );
+                }
+            }
         }
 
-        $urls = get_user_meta( $user_id, '_gn_profile_avatar_urls', true );
+        if ( empty( $urls ) ) {
+            $simple_avatar = get_user_meta( $user_id, 'simple_local_avatar', true );
+            $urls          = $this->normalise_simple_local_avatar_urls( $simple_avatar );
 
-        if ( ! is_array( $urls ) || empty( $urls ) ) {
-            $urls = $this->prepare_avatar_urls( $attachment_id );
+            if ( $attachment_id <= 0 && is_array( $simple_avatar ) && ! empty( $simple_avatar['media_id'] ) ) {
+                $attachment_id = (int) $simple_avatar['media_id'];
+                $urls          = $this->prepare_avatar_urls( $attachment_id );
+            }
 
-            if ( ! empty( $urls ) ) {
+            if ( $attachment_id > 0 && ! empty( $urls ) ) {
+                update_user_meta( $user_id, '_gn_profile_avatar_id', $attachment_id );
                 update_user_meta( $user_id, '_gn_profile_avatar_urls', $urls );
             }
         }
@@ -520,7 +663,11 @@ class ProfileEndpoints {
             return $this->maybe_apply_avatar_scheme( $urls['full'], $args );
         }
 
-        foreach ( $urls as $candidate ) {
+        foreach ( $urls as $key => $candidate ) {
+            if ( 'media_id' === $key ) {
+                continue;
+            }
+
             if ( is_string( $candidate ) && '' !== $candidate ) {
                 return $this->maybe_apply_avatar_scheme( $candidate, $args );
             }
