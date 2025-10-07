@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.71
+- Let `/gn/v1/profile/avatar` accept JSON payloads that either reference a remote `avatar_url` or include `avatar_base64` image data so mobile clients can bypass multipart uploads while keeping Media Library validation in place.【F:includes/Rest/ProfileEndpoints.php†L166-L320】【F:includes/Rest/ProfileEndpoints.php†L470-L612】
+
 ### 0.3.70
 - Enforce the same HTTPS checks used by the login and change password endpoints when uploading avatars, while still honouring the `gn_password_api_allow_dev_http` development override filter.【F:includes/Rest/ProfileEndpoints.php†L49-L120】【F:includes/Rest/ProfileEndpoints.php†L520-L537】
 - When avatar uploads rely on bearer tokens, set the current user so Media Library operations run under the authenticated account.【F:includes/Rest/ProfileEndpoints.php†L95-L118】

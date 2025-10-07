@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.70
+Stable tag: 0.3.71
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,10 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.71 =
+* Allow `/gn/v1/profile/avatar` to accept JSON payloads with either an `avatar_url` or base64 encoded image data so mobile clients can skip multipart form uploads.【F:includes/Rest/ProfileEndpoints.php†L166-L320】【F:includes/Rest/ProfileEndpoints.php†L470-L612】
+
 = 0.3.70 =
 * Enforce HTTPS for `/gn/v1/profile/avatar` like the login and password change endpoints while still allowing `gn_password_api_allow_dev_http` overrides for local development.
 * Refresh authentication handling so bearer tokens on avatar uploads establish the current user before Media Library operations run.
