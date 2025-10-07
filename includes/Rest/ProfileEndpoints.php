@@ -138,11 +138,20 @@ class ProfileEndpoints {
             $user_id = get_current_user_id();
         }
 
+        $files = array();
+        if ( method_exists( $request, 'get_file_params' ) ) {
+            $files = (array) $request->get_file_params();
+        }
+
+        if ( empty( $files['avatar'] ) && isset( $_FILES['avatar'] ) ) {
+            $files['avatar'] = $_FILES['avatar'];
+        }
+
         $this->log_debug(
             'handle_avatar_upload invoked',
             array(
                 'resolved_user_id' => $user_id,
-                'files_present'    => isset( $_FILES['avatar'] ),
+                'files_present'    => isset( $files['avatar'] ),
             )
         );
 
@@ -156,7 +165,7 @@ class ProfileEndpoints {
             );
         }
 
-        if ( empty( $_FILES['avatar'] ) ) {
+        if ( empty( $files['avatar'] ) ) {
             $this->log_debug( 'handle_avatar_upload missing avatar file data' );
 
             return new WP_Error(
@@ -166,7 +175,22 @@ class ProfileEndpoints {
             );
         }
 
-        $file = $_FILES['avatar'];
+        $file = $files['avatar'];
+
+        if ( ! is_array( $file ) ) {
+            $this->log_debug(
+                'handle_avatar_upload received unexpected file payload',
+                array(
+                    'file_type' => gettype( $file ),
+                )
+            );
+
+            return new WP_Error(
+                'tcn_avatar_missing',
+                __( 'Upload an image file using the avatar field.', 'tcnapp-connector' ),
+                array( 'status' => 400 )
+            );
+        }
 
         if ( ! isset( $file['tmp_name'] ) || '' === $file['tmp_name'] ) {
             $this->log_debug(
