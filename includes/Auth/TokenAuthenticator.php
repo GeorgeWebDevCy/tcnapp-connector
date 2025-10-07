@@ -12,7 +12,11 @@ class TokenAuthenticator {
      */
     public function authenticate_request( WP_REST_Request $request ) {
         $raw_header = $request->get_header( 'authorization' );
-        $header     = $this->resolve_authorization_header( $raw_header );
+        if ( ! is_string( $raw_header ) || '' === trim( $raw_header ) ) {
+            // Some hosts strip Authorization for multipart/form-data; allow a fallback header.
+            $raw_header = $request->get_header( 'x-authorization' );
+        }
+        $header = $this->resolve_authorization_header( $raw_header );
 
         $this->log_debug(
             'authenticate_request invoked',
@@ -25,8 +29,25 @@ class TokenAuthenticator {
         );
 
         if ( '' === $header ) {
-            $this->log_debug( 'authenticate_request missing authorization header' );
+            // Final fallback to request parameters (multipart-friendly)
+            $param_token = $request->get_param( 'token' );
+            if ( ! $param_token ) {
+                $param_token = $request->get_param( 'api_token' );
+            }
+            if ( ! $param_token ) {
+                $param_token = $request->get_param( 'authorization' );
+            }
 
+            if ( is_string( $param_token ) && '' !== trim( $param_token ) ) {
+                $token = trim( (string) $param_token );
+                if ( 0 === stripos( $token, 'Bearer ' ) ) {
+                    $token = trim( substr( $token, 7 ) );
+                }
+                $this->log_debug( 'authenticate_request using token parameter fallback' );
+                return $this->authenticate_with_token( $token );
+            }
+
+            $this->log_debug( 'authenticate_request missing authorization header' );
             return 0;
         }
 
