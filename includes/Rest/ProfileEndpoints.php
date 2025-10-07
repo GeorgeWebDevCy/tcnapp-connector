@@ -2,6 +2,7 @@
 namespace TCN\Platform\Rest;
 
 use TCN\Platform\Auth\TokenAuthenticator;
+use TCN\Platform\Support\Options;
 use WP_Comment;
 use WP_Error;
 use WP_Post;
@@ -16,8 +17,14 @@ class ProfileEndpoints {
      */
     protected $token_authenticator;
 
-    public function __construct( ?TokenAuthenticator $token_authenticator = null ) {
+    /**
+     * @var array<string, mixed>
+     */
+    protected $login_settings;
+
+    public function __construct( ?TokenAuthenticator $token_authenticator = null, array $login_settings = array() ) {
         $this->token_authenticator = $token_authenticator;
+        $this->login_settings      = ! empty( $login_settings ) ? $login_settings : Options::get_login_settings();
     }
 
     /**
@@ -52,6 +59,11 @@ class ProfileEndpoints {
      * Ensure the requester is authenticated and can upload files.
      */
     public function permissions_check( WP_REST_Request $request ) {
+        $https = $this->maybe_enforce_https( $request );
+        if ( is_wp_error( $https ) ) {
+            return $https;
+        }
+
         $user_id = get_current_user_id();
 
         $this->log_debug(
@@ -132,6 +144,14 @@ class ProfileEndpoints {
                 __( 'You can only upload an avatar for your own profile.', 'tcnapp-connector' ),
                 array( 'status' => 403 )
             );
+        }
+
+        if ( $user_id > 0 && get_current_user_id() !== $user_id ) {
+            $user = get_user_by( 'id', $user_id );
+
+            if ( $user instanceof WP_User ) {
+                wp_set_current_user( $user_id );
+            }
         }
 
         return true;
@@ -768,6 +788,26 @@ class ProfileEndpoints {
         }
 
         return $this->token_authenticator->authenticate_request( $request );
+    }
+
+    /**
+     * Block non-HTTPS requests unless development overrides allow it.
+     *
+     * @return true|WP_Error
+     */
+    protected function maybe_enforce_https( WP_REST_Request $request ) {
+        $allow_dev = ! empty( $this->login_settings['allow_dev_http'] ) && defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $allow_dev = apply_filters( 'gn_password_api_allow_dev_http', $allow_dev, $request );
+
+        if ( is_ssl() || $allow_dev ) {
+            return true;
+        }
+
+        return new WP_Error(
+            'gn_https_required',
+            __( 'HTTPS is required to access this endpoint.', 'tcnapp-connector' ),
+            array( 'status' => 403 )
+        );
     }
 
     /**
