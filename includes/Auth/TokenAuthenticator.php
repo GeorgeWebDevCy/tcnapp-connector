@@ -4,11 +4,19 @@ namespace TCN\Platform\Auth;
 use WP_Error;
 use WP_REST_Request;
 
+/**
+ * Provides bearer token authentication for REST endpoints and login hand-offs.
+ *
+ * This class centralises the logic for extracting tokens from multiple sources (headers,
+ * parameters, transients) and applies consistent logging to aid in debugging hosting-specific
+ * quirks such as stripped Authorization headers.
+ */
 class TokenAuthenticator {
     /**
      * Attempt to authenticate a REST request using the password login bearer token.
      *
-     * @return int|WP_Error Returns the authenticated user ID on success, 0 when no token is present, or WP_Error for invalid tokens.
+     * @return int|WP_Error Returns the authenticated user ID on success, 0 when no token is
+     *                      present, or WP_Error for invalid tokens.
      */
     public function authenticate_request( WP_REST_Request $request ) {
         $raw_header = $request->get_header( 'authorization' );
@@ -16,6 +24,8 @@ class TokenAuthenticator {
             // Some hosts strip Authorization for multipart/form-data; allow a fallback header.
             $raw_header = $request->get_header( 'x-authorization' );
         }
+        // Normalise the header by falling back to PHP globals when WordPress does not capture the
+        // value (common when Apache strips headers in proxied environments).
         $header = $this->resolve_authorization_header( $raw_header );
 
         $this->log_debug(
@@ -43,6 +53,8 @@ class TokenAuthenticator {
                 if ( 0 === stripos( $token, 'Bearer ' ) ) {
                     $token = trim( substr( $token, 7 ) );
                 }
+                // Multipart requests often include the raw token value; we log the fallback so
+                // integrators know why headers were ignored.
                 $this->log_debug( 'authenticate_request using token parameter fallback' );
                 return $this->authenticate_with_token( $token );
             }
@@ -62,6 +74,8 @@ class TokenAuthenticator {
      */
     public function determine_current_user( $user_id ) {
         if ( $user_id ) {
+            // When another authentication mechanism has already populated the user ID we respect
+            // that result and bail out early.
             return $user_id;
         }
 
@@ -85,6 +99,8 @@ class TokenAuthenticator {
             return $user_id;
         }
 
+        // At this point the request has successfully authenticated with a bearer token. We log the
+        // masked details to help diagnose unexpected account switches without leaking secrets.
         $this->log_debug(
             'determine_current_user authenticated via bearer token',
             array(
@@ -100,6 +116,9 @@ class TokenAuthenticator {
      * Register WordPress hooks for automatic bearer token authentication.
      */
     public function register_hooks(): void {
+        // The default WordPress priority for determine_current_user is 20. Matching it ensures we
+        // run after core but before most plugins, giving bearer tokens an opportunity to override
+        // cookie-based sessions when appropriate.
         add_filter( 'determine_current_user', array( $this, 'determine_current_user' ), 20 );
     }
 
@@ -109,6 +128,7 @@ class TokenAuthenticator {
      * @return array<string, mixed>|false
      */
     protected function get_login_token_payload( string $token_hash ) {
+        // One-time login tokens are stored as transients keyed by a hashed token value.
         $payload = get_transient( PasswordLoginService::TOKEN_PREFIX . $token_hash );
 
         if ( ! is_array( $payload ) || empty( $payload['user_id'] ) ) {
@@ -128,11 +148,14 @@ class TokenAuthenticator {
      */
     protected function resolve_authorization_header( $header ): string {
         if ( is_string( $header ) && '' !== trim( $header ) ) {
+            // When WordPress has already provided a clean header we simply normalise whitespace.
             return trim( (string) $header );
         }
 
         foreach ( $this->get_server_header_keys() as $server_key ) {
             if ( isset( $_SERVER[ $server_key ] ) && '' !== trim( (string) $_SERVER[ $server_key ] ) ) {
+                // Some hosting providers expose the header under different names. We unslash to
+                // counteract WordPress's automatic escaping of $_SERVER values.
                 return trim( (string) wp_unslash( $_SERVER[ $server_key ] ) );
             }
         }
@@ -207,6 +230,8 @@ class TokenAuthenticator {
 
         foreach ( $schemes as $scheme ) {
             if ( preg_match( '/^' . preg_quote( $scheme, '/' ) . '\s+(.*)$/i', $header, $matches ) ) {
+                // preg_match returns the portion of the header following the scheme keyword. We
+                // trim it to remove any trailing whitespace or newline characters.
                 return trim( (string) $matches[1] );
             }
         }
@@ -259,6 +284,8 @@ class TokenAuthenticator {
      * @return array<int, string>
      */
     protected function get_suppressed_authorization_schemes(): array {
+        // Basic and Digest authentication are commonly used by reverse proxies; logging them would
+        // create noise without providing actionable insight.
         return array( 'basic', 'digest' );
     }
 
@@ -278,11 +305,14 @@ class TokenAuthenticator {
             );
         }
 
+        // Hash the token to generate a consistent key for transient lookups without storing the raw
+        // secret in memory for longer than necessary.
         $token_hash = md5( $token );
         $token_type = 'login';
 
         $payload = $this->get_login_token_payload( $token_hash );
         if ( false === $payload ) {
+            // If no one-time login token exists we fall back to long-lived API tokens.
             $token_type = 'api';
             $payload    = $this->get_api_token_payload( $token_hash );
 
@@ -296,6 +326,7 @@ class TokenAuthenticator {
 
         $user_id = (int) $payload['user_id'];
         if ( $user_id <= 0 || ! get_user_by( 'id', $user_id ) ) {
+            // Log sufficient context for debugging without revealing the original token.
             $this->log_debug(
                 'authenticate_request token payload user invalid',
                 array(
@@ -311,6 +342,7 @@ class TokenAuthenticator {
             );
         }
 
+        // Update the global user context so downstream hooks see the authenticated user.
         wp_set_current_user( $user_id );
 
         $this->log_debug(
@@ -332,9 +364,13 @@ class TokenAuthenticator {
      */
     protected function get_server_header_keys(): array {
         return array(
+            // Standard PHP environment variable when Apache passes through the header.
             'HTTP_AUTHORIZATION',
+            // Some hosts rewrite the header to this key; WordPress honours it if present.
             'REDIRECT_HTTP_AUTHORIZATION',
+            // Generic fallback used by certain CGI setups.
             'AUTHORIZATION',
+            // Custom header used by some load balancers and proxies.
             'HTTP_X_AUTHORIZATION',
         );
     }
@@ -366,6 +402,8 @@ class TokenAuthenticator {
                 )
             );
 
+            // Expired API tokens are purged immediately to avoid repeatedly performing the same
+            // expiration checks on subsequent requests.
             delete_transient( PasswordLoginService::API_TOKEN_PREFIX . $token_hash );
 
             return false;
@@ -379,6 +417,8 @@ class TokenAuthenticator {
      */
     protected function log_debug( string $message, array $context = array() ): void {
         if ( ! defined( 'WP_DEBUG' ) || ! WP_DEBUG ) {
+            // Honour WordPress' debugging flag so production environments are not spammed with
+            // token-related noise.
             return;
         }
 
@@ -399,22 +439,28 @@ class TokenAuthenticator {
     protected function sanitize_context( array $context ): array {
         foreach ( $context as $key => $value ) {
             if ( is_array( $value ) ) {
+                // Recursively process nested arrays so no sensitive data leaks when logging.
                 $context[ $key ] = $this->sanitize_context( $value );
                 continue;
             }
 
             if ( is_object( $value ) ) {
+                // Replace objects with their class name; dumping entire objects could trigger fatal
+                // errors or expose unintended properties.
                 $context[ $key ] = get_class( $value );
                 continue;
             }
 
             if ( is_string( $value ) ) {
                 if ( false !== stripos( $key, 'token' ) || false !== stripos( $key, 'authorization' ) ) {
+                    // Mask anything that looks like a secret while retaining enough information to
+                    // correlate logs.
                     $context[ $key ] = $this->mask_string( $value );
                     continue;
                 }
 
                 if ( strlen( $value ) > 180 ) {
+                    // Long strings (e.g. payloads) are truncated to keep log lines readable.
                     $context[ $key ] = substr( $value, 0, 177 ) . '...';
                 }
             }
@@ -431,6 +477,8 @@ class TokenAuthenticator {
             return str_repeat( '*', strlen( $value ) );
         }
 
+        // For longer strings we expose the first/last characters to aid debugging while keeping the
+        // majority of the token obscured.
         return substr( $value, 0, 4 ) . '...' . substr( $value, -4 );
     }
 
@@ -452,6 +500,9 @@ class TokenAuthenticator {
         static $cached_status = null;
 
         if ( function_exists( 'doing_filter' ) && doing_filter( 'determine_current_user' ) ) {
+            // Avoid re-entering rest_authorization_required_code() while the filter is running,
+            // which could lead to recursion. Reuse the cached value if available, otherwise fall
+            // back to the standard 401 code.
             return null !== $cached_status ? $cached_status : 401;
         }
 
