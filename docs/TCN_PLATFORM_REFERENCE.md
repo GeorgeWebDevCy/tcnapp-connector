@@ -35,6 +35,9 @@ The password login service powers the mobile authentication flow, rate-limits br
 | `/change-password` | POST | Bearer token or logged-in cookie | Validate the current password and set a new one. Refreshes the auth cookie. |
 | `/me` | GET | Bearer token issued by `/login` | Resolve the user linked to a bearer token without requiring cookies. |
 | `/log` | POST | Public | Proxy arbitrary client logs into the plugin’s activity log. |
+| `/vendors/tiers` | GET | Public | Retrieve the vendor tier catalogue (Sapphire/Diamond) with discount matrices and benefits. |
+| `/membership/qr` | POST | Bearer token | Issue a short‑lived membership QR token for the current user. Optional `payload` string is echoed back for clients embedding context. |
+| `/membership/qr/validate` | POST | Bearer token | Validate a member QR `token` and return membership tier plus `allowed_discount` for the authenticated vendor. |
 | `/discounts/lookup` | POST | Bearer token with `tcn_discount_redemptions` capability | Validate a QR token and return the member + discount context required to complete a redemption. |
 | `/discounts/transactions` | POST | Bearer token with `tcn_discount_redemptions` capability | Persist a redeemed discount transaction and snapshot the plan tier + monetary breakdown. |
 | `/discounts/history` | GET | Bearer token (member sees personal history, vendor sees outlet history) | Paginate prior redemptions and return aggregated totals for dashboards. |
@@ -43,7 +46,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 
 * **Rate limiting:** The login endpoint tracks attempts per `{action}:{identifier}:{IP}` using the configured `rate_limit` and `rate_limit_window` values. Excessive failures return `429 gn_rate_limited` until the TTL expires.【F:includes/Auth/PasswordLoginService.php†L150-L209】
 * **Token lifetime:** `token` (for one-click WordPress login) and `api_token` (for REST bearer auth) both default to seven days and are stored as WordPress transients with matching expiration timestamps.【F:includes/Auth/PasswordLoginService.php†L211-L240】【F:includes/Auth/PasswordLoginService.php†L560-L599】
-* **User payload:** Responses include `id`, `username`, `email`, `display_name`, `first_name`, `last_name`, `membership_level`, `sponsor_id`, `account_type`, `account_status`, `vendor_status`, optional `vendor_rejection_reason`, and optional WooCommerce credentials (consumer key/secret + base64 `authorization`).【F:includes/Auth/PasswordLoginService.php†L472-L510】
+* **User payload:** Responses include `id`, `username`, `email`, `display_name`, `first_name`, `last_name`, `membership_level`, `sponsor_id`, `account_type`, `account_status`, `vendor_status`, optional `vendor_tier`, optional `vendor_rejection_reason`, and optional WooCommerce credentials (consumer key/secret + base64 `authorization`).【F:includes/Auth/PasswordLoginService.php†L472-L510】
 * **Error format:** Failures are returned as `WP_Error` with descriptive messages and HTTP codes (400 for validation, 401/403 for auth, 404 for unknown users, 409 for conflicts, 429 for rate limiting).【F:includes/Auth/PasswordLoginService.php†L146-L392】
 
 #### `POST /wp-json/gn/v1/login`

@@ -14,6 +14,8 @@ use TCN\Platform\Rest\AdminDirectoryEndpoints;
 use TCN\Platform\Rest\DiscountEndpoints;
 use TCN\Platform\Rest\ProfileEndpoints;
 use TCN\Platform\Rest\WooCommerceEndpoints;
+use TCN\Platform\Rest\VendorEndpoints;
+use TCN\Platform\Rest\MembershipQrEndpoints;
 use TCN\Platform\Support\Modules;
 use TCN\Platform\Support\Roles;
 use TCN\Platform\Support\ActivityMonitor;
@@ -101,6 +103,7 @@ class Plugin {
             $this->services[] = new JwtAuthEndpoints();
             $this->services[] = new DiscountEndpoints( $token_authenticator );
             $this->services[] = new AdminDirectoryEndpoints( $token_authenticator );
+            $this->services[] = new MembershipQrEndpoints( $token_authenticator );
         } else {
             // If the module is disabled we still expose the legacy action for backwards
             // compatibility so extensions that expect the class alias do not break.
@@ -116,6 +119,9 @@ class Plugin {
         // Profile endpoints remain available regardless of WooCommerce because other integrations
         // rely on them to fetch user data.
         $this->services[] = new ProfileEndpoints( $token_authenticator );
+
+        // Public vendor catalogue endpoints.
+        $this->services[] = new VendorEndpoints();
 
         if ( is_admin() ) {
             // Admin-only services register menus, enqueue assets, and expose operational tools. We

@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.81
+Stable tag: 0.3.82
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,13 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.82 =
+* Add public `GET /wp-json/gn/v1/vendors/tiers` endpoint that exposes the vendor tier catalogue (Sapphire/Diamond) with discount matrices and marketing benefits for onboarding screens.【F:includes/Rest/VendorEndpoints.php†L1-L73】
+* Add admin endpoint `POST /wp-json/tcn/v1/admin/vendors/{id}/tier` to update a vendor’s tier; include `vendor_tier` in directory account payloads.【F:includes/Rest/AdminDirectoryEndpoints.php†L1-L120】【F:includes/Rest/AdminDirectoryEndpoints.php†L120-L220】
+* Add membership QR endpoints: `POST /wp-json/gn/v1/membership/qr` to mint short‑lived tokens and `POST /wp-json/gn/v1/membership/qr/validate` to resolve the member and compute `allowed_discount` based on the vendor’s tier.【F:includes/Rest/MembershipQrEndpoints.php†L1-L160】
+* Include `vendor_tier` in `/gn/v1/login` and `/gn/v1/me` payloads and accept optional `vendor_tier` during `/gn/v1/register` for vendor accounts (defaults to `sapphire`).【F:includes/Auth/PasswordLoginService.php†L430-L520】
+* Seed default vendor tiers on activation so mobile clients can render tier benefits out of the box.【F:includes/Support/VendorTiers.php†L1-L120】【F:includes/Activator.php†L1-L80】
 
 = 0.3.81 =
 * Add admin-only `/tcn/v1/admin/*` endpoints for reviewing accounts, approving vendors, and recording rejection reasons.【F:includes/Rest/AdminDirectoryEndpoints.php†L24-L199】

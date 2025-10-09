@@ -3,6 +3,7 @@ namespace TCN\Platform\Rest;
 
 use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Support\Accounts;
+use TCN\Platform\Support\VendorTiers;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -81,6 +82,26 @@ class AdminDirectoryEndpoints {
                 ),
             )
         );
+
+        register_rest_route(
+            'tcn/v1',
+            '/admin/vendors/(?P<id>\\d+)/tier',
+            array(
+                'methods'             => WP_REST_Server::CREATABLE,
+                'callback'            => array( $this, 'update_vendor_tier' ),
+                'permission_callback' => array( $this, 'require_admin_capability' ),
+                'args'                => array(
+                    'id' => array(
+                        'validate_callback' => array( $this, 'validate_positive_int' ),
+                    ),
+                    'vendor_tier' => array(
+                        'type'              => 'string',
+                        'required'          => true,
+                        'sanitize_callback' => 'sanitize_key',
+                    ),
+                ),
+            )
+        );
     }
 
     public function require_admin_capability( WP_REST_Request $request ) {
@@ -141,6 +162,7 @@ class AdminDirectoryEndpoints {
                 'account_type'     => $snapshot['account_type'],
                 'account_status'   => $snapshot['account_status'],
                 'vendor_status'    => $snapshot['vendor_status'],
+                'vendor_tier'      => (string) get_user_meta( $user->ID, '_tcn_vendor_tier', true ),
                 'sponsor_id'       => (int) get_user_meta( $user->ID, '_tcn_sponsor_id', true ),
                 'contact'          => array(
                     'phone'    => $this->get_contact_phone( $user->ID ),
@@ -201,6 +223,28 @@ class AdminDirectoryEndpoints {
         return array(
             'success' => true,
             'vendor'  => Accounts::get_account_snapshot( $user->ID ),
+        );
+    }
+
+    public function update_vendor_tier( WP_REST_Request $request ) {
+        $user_id = (int) $request->get_param( 'id' );
+        $user    = get_user_by( 'id', $user_id );
+
+        if ( ! $user instanceof WP_User ) {
+            return new WP_Error( 'tcn_vendor_not_found', __( 'Unable to locate the requested vendor.', 'tcnapp-connector' ), array( 'status' => 404 ) );
+        }
+
+        $slug  = sanitize_key( (string) $request->get_param( 'vendor_tier' ) );
+        $tiers = VendorTiers::get_all();
+        if ( '' === $slug || ! isset( $tiers[ $slug ] ) ) {
+            return new WP_Error( 'gn_invalid_vendor_tier', __( 'The specified vendor tier is not valid.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+        }
+
+        update_user_meta( $user->ID, '_tcn_vendor_tier', $slug );
+
+        return array(
+            'success' => true,
+            'vendor'  => Accounts::get_account_snapshot( $user->ID ) + array( 'vendor_tier' => $slug ),
         );
     }
 

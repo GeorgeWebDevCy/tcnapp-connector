@@ -260,6 +260,7 @@ class PasswordLoginService {
         $first_name   = sanitize_text_field( (string) $request->get_param( 'first_name' ) );
         $last_name    = sanitize_text_field( (string) $request->get_param( 'last_name' ) );
         $account_type = (string) $request->get_param( 'account_type' );
+        $vendor_tier  = sanitize_key( (string) $request->get_param( 'vendor_tier' ) );
 
         if ( empty( $username ) || empty( $email ) || empty( $password ) ) {
             return new WP_Error( 'gn_missing_fields', __( 'Username, email, and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
@@ -298,6 +299,20 @@ class PasswordLoginService {
         );
 
         Accounts::bootstrap_new_account( $user_id, $account_type );
+
+        if ( \TCN\Platform\Support\Accounts::TYPE_VENDOR === strtolower( sanitize_key( $account_type ) ) ) {
+            if ( '' !== $vendor_tier ) {
+                $tiers = \TCN\Platform\Support\VendorTiers::get_all();
+                if ( isset( $tiers[ $vendor_tier ] ) ) {
+                    update_user_meta( $user_id, '_tcn_vendor_tier', $vendor_tier );
+                } else {
+                    return new WP_Error( 'gn_invalid_vendor_tier', __( 'The specified vendor tier is not valid.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+                }
+            } else {
+                // Default to sapphire when omitted
+                update_user_meta( $user_id, '_tcn_vendor_tier', 'sapphire' );
+            }
+        }
 
         /**
          * Fires after a user is registered through the Password Login API.
@@ -527,6 +542,11 @@ class PasswordLoginService {
 
         if ( isset( $snapshot['vendor_rejection_reason'] ) ) {
             $payload['vendor_rejection_reason'] = $snapshot['vendor_rejection_reason'];
+        }
+
+        $vendor_tier = (string) get_user_meta( $user->ID, '_tcn_vendor_tier', true );
+        if ( '' !== $vendor_tier ) {
+            $payload['vendor_tier'] = $vendor_tier;
         }
 
         $woocommerce_credentials = $this->get_woocommerce_credentials();

@@ -180,9 +180,24 @@ The Password Login API now exposes three REST routes that let mobile clients val
         "net_sum": 9225
       },
       "transactions": [ { ... latest redemption ... } ],
-      "pagination": { "page": 1, "per_page": 25, "total_pages": 2 }
+    "pagination": { "page": 1, "per_page": 25, "total_pages": 2 }
     }
     ```
+
+## 🧱 Vendor Tiers Catalogue
+
+- **`GET /wp-json/gn/v1/vendors/tiers`** returns the vendor tier catalogue used by the app during onboarding and marketing. The default catalogue includes two tiers:
+  - Sapphire – discounts: Gold 2.5%, Platinum 5%, Black 10%; promotion allowance: 1 per quarter.
+  - Diamond – discounts: Gold 5%, Platinum 10%, Black 20%; promotion allowance: 1 per month.
+
+The response includes `slug`, `name`, `discounts`/`discountRates`, `promotion_allowance`/`promotionSummary`, `fees`, and `benefits`.
+
+Administrators can update a vendor’s tier via `POST /wp-json/tcn/v1/admin/vendors/{id}/tier` with `{ "vendor_tier": "sapphire|diamond" }`.
+
+## 📱 Membership QR Codes
+
+- **`POST /wp-json/gn/v1/membership/qr`** (Bearer token) issues a short‑lived token representing the authenticated member. Returns `{ token, qr_payload, issued_at, expires_at }`. Clients embed `token` in QR codes for vendors to scan.
+- **`POST /wp-json/gn/v1/membership/qr/validate`** (Bearer token) validates a scanned `token` and returns the member’s `membership_tier` plus `allowed_discount` for the authenticated vendor based on the vendor’s tier.
 
 ### Storage & schema considerations
 
