@@ -4,10 +4,12 @@ declare(strict_types=1);
 require __DIR__ . '/bootstrap.php';
 require __DIR__ . '/TokenAuthenticatorTest.php';
 require __DIR__ . '/PasswordLoginServiceTest.php';
+require __DIR__ . '/MembershipModuleTest.php';
 
 $test_classes = array(
     'TokenAuthenticatorTest',
     'PasswordLoginServiceTest',
+    'TCN\\Platform\\Tests\\MembershipModuleTest',
 );
 
 $failures = 0;

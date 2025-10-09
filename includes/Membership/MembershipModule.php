@@ -539,6 +539,24 @@ class MembershipModule {
             if ( ! empty( $intent['metadata']['plan'] ) && sanitize_key( $intent['metadata']['plan'] ) !== $plan ) {
                 return new WP_Error( 'intent_plan_mismatch', __( 'The payment intent does not belong to this membership plan.', 'tcnapp-connector' ), array( 'status' => 409 ) );
             }
+
+            $metadata_user_id = null;
+            if ( isset( $intent['metadata'] ) && is_array( $intent['metadata'] ) ) {
+                foreach ( array( 'user_id', 'user', 'member_id' ) as $metadata_key ) {
+                    if ( isset( $intent['metadata'][ $metadata_key ] ) ) {
+                        $metadata_user_id = absint( $intent['metadata'][ $metadata_key ] );
+                        break;
+                    }
+                }
+            }
+
+            if ( ! $metadata_user_id || $metadata_user_id !== $user_id ) {
+                return new WP_Error(
+                    'rest_forbidden',
+                    __( 'You are not allowed to confirm this payment.', 'tcnapp-connector' ),
+                    array( 'status' => rest_authorization_required_code() )
+                );
+            }
         }
 
         $this->ensure_sponsor_assignment( $user_id );
