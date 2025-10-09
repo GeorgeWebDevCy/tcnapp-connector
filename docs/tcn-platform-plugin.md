@@ -217,6 +217,10 @@ The Password Login API now exposes three REST routes that let mobile clients val
 
 ## 📝 Release Notes
 
+### 0.3.80
+- Use stored profile photo attachments when WordPress resolves avatars so member uploads replace Gravatar everywhere.
+- Cache avatar URL metadata across contexts and honour requested URL schemes when rendering avatars.
+
 ### 0.3.79
 - Add discount lookup, transaction, and history presets to the API tester so vendor rollouts can be exercised entirely inside WordPress before going live.
 
