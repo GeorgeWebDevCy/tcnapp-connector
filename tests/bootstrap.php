@@ -61,17 +61,6 @@ namespace PHPUnit\Framework {
     }
 }
 
-namespace TCN\Platform\Auth {
-    if ( ! class_exists( PasswordLoginService::class, false ) ) {
-        class PasswordLoginService {
-            public const RATE_LIMIT_PREFIX = 'gn_login_rate_';
-            public const TOKEN_PREFIX      = 'gn_login_token_';
-            public const API_TOKEN_PREFIX  = 'tcn_api_tok_';
-            public const RESET_META_KEY    = '_gn_password_api_reset_code';
-        }
-    }
-}
-
 namespace {
     if ( ! class_exists( 'WP_Error', false ) ) {
         class WP_Error {
@@ -86,16 +75,31 @@ namespace {
              */
             private $headers = array();
 
-            public function __construct( array $headers = array() ) {
+            /**
+             * @var string
+             */
+            private $route = '';
+
+            public function __construct( array $headers = array(), string $route = '' ) {
                 foreach ( $headers as $key => $value ) {
                     $this->headers[ strtolower( (string) $key ) ] = (string) $value;
                 }
+
+                $this->route = $route;
             }
 
             public function get_header( $key ) {
                 $key = strtolower( (string) $key );
 
                 return $this->headers[ $key ] ?? '';
+            }
+
+            public function set_route( string $route ): void {
+                $this->route = $route;
+            }
+
+            public function get_route(): string {
+                return $this->route;
             }
         }
     }
@@ -106,9 +110,27 @@ namespace {
         }
     }
 
+    if ( ! function_exists( 'esc_url_raw' ) ) {
+        function esc_url_raw( $url ) {
+            return $url;
+        }
+    }
+
     if ( ! function_exists( '__' ) ) {
         function __( $text ) {
             return $text;
+        }
+    }
+
+    if ( ! function_exists( 'home_url' ) ) {
+        function home_url() {
+            return $GLOBALS['tcn_home_url'] ?? '';
+        }
+    }
+
+    if ( ! function_exists( 'wp_parse_url' ) ) {
+        function wp_parse_url( $url ) {
+            return parse_url( $url );
         }
     }
 
@@ -142,4 +164,22 @@ namespace {
 
     require_once __DIR__ . '/../vendor/autoload.php';
     require_once __DIR__ . '/../includes/Auth/TokenAuthenticator.php';
+}
+
+namespace TCN\Platform\Auth {
+    if ( ! function_exists( __NAMESPACE__ . '\\headers_sent' ) ) {
+        function headers_sent() {
+            return false;
+        }
+    }
+
+    if ( ! function_exists( __NAMESPACE__ . '\\header' ) ) {
+        function header( $string ) {
+            if ( ! isset( $GLOBALS['tcn_test_headers'] ) || ! is_array( $GLOBALS['tcn_test_headers'] ) ) {
+                $GLOBALS['tcn_test_headers'] = array();
+            }
+
+            $GLOBALS['tcn_test_headers'][] = $string;
+        }
+    }
 }
