@@ -2,6 +2,7 @@
 namespace TCN\Platform;
 
 use TCN\Platform\Membership\MembershipModule;
+use TCN\Platform\Support\Discounts;
 use TCN\Platform\Support\Modules;
 use TCN\Platform\Support\Options;
 use TCN\Platform\Support\Roles;
@@ -21,6 +22,8 @@ class Activator {
         // MembershipModule may need to perform schema updates or network calls when the plugin is
         // first enabled. By delegating to the module the logic stays contained.
         MembershipModule::activate();
+        // Ensure the discount transaction table exists before any REST calls attempt to write to it.
+        Discounts::activate();
 
         // Fire a WordPress action to allow extensions to hook into the activation lifecycle.
         do_action( 'tcn_platform_activated' );

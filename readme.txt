@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.75
+Stable tag: 0.3.76
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,11 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.76 =
+* Add discount validation, redemption, and history endpoints under `/gn/v1/discounts/*`, including rate-limited QR token lookup, transaction recording, and paginated reporting for members and vendors.【F:includes/Rest/DiscountEndpoints.php†L1-L353】【F:includes/Support/Discounts.php†L1-L367】
+* Create a discount transaction table during activation and grant the `tcn_discount_redemptions` capability to administrators and shop managers.【F:includes/Support/Discounts.php†L15-L73】【F:includes/Support/Roles.php†L14-L65】
+* Document the unified platform and REST catalogue updates in `docs/TCN_PLATFORM_REFERENCE.md` and add a comprehensive plugin overview in `docs/tcn-platform-plugin.md`.【F:docs/TCN_PLATFORM_REFERENCE.md†L1-L374】【F:docs/tcn-platform-plugin.md†L1-L274】
 
 = 0.3.72 =
 * Preserve avatar URL size keys when merging stored values into REST responses so numeric indexes like `24`, `48`, and `96` remain intact.

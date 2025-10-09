@@ -38,7 +38,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 #### Shared request & response behaviour
 
 * **Rate limiting:** The login endpoint tracks attempts per `{action}:{identifier}:{IP}` using the configured `rate_limit` and `rate_limit_window` values. Excessive failures return `429 gn_rate_limited` until the TTL expires.【F:includes/Auth/PasswordLoginService.php†L158-L205】【F:includes/Auth/PasswordLoginService.php†L508-L548】
-* **Token lifetime:** `token` (for one-click WordPress login) and the JWT-backed `api_token` (for REST bearer auth) both default to seven days. The API token is hashed into a transient for validation while the signed JWT payload retains the same expiry.【F:includes/Auth/PasswordLoginService.php†L186-L209】【F:includes/Auth/PasswordLoginService.php†L566-L610】【F:includes/Auth/JwtTokenService.php†L14-L57】
+* **Token lifetime:** `token` (for one-click WordPress login) and `api_token` (for REST bearer auth) both default to seven days and are stored as WordPress transients with matching expiration timestamps.【F:includes/Auth/PasswordLoginService.php†L186-L209】【F:includes/Auth/PasswordLoginService.php†L560-L599】
 * **User payload:** Responses include `id`, `username`, `email`, `display_name`, `first_name`, `last_name`, `membership_level`, `sponsor_id`, and optional `woocommerce` credentials (consumer key/secret + base64 `authorization`).【F:includes/Auth/PasswordLoginService.php†L456-L485】
 * **Error format:** Failures are returned as `WP_Error` with descriptive messages and HTTP codes (400 for validation, 401/403 for auth, 404 for unknown users, 409 for conflicts, 429 for rate limiting).【F:includes/Auth/PasswordLoginService.php†L146-L237】【F:includes/Auth/PasswordLoginService.php†L260-L392】
 
@@ -107,6 +107,124 @@ The password login service powers the mobile authentication flow, rate-limits br
   * `log_params` *(array, optional)* – Additional context stored with the log entry.
 * **Success response:** `{ ok: true }` after calling `Support\Logger::log()`.
 
+#### `POST /wp-json/gn/v1/discounts/lookup`
+
+* **Purpose:** Validate a scanned discount QR token before the transaction finalises at the point of sale.
+* **Authentication:** `Authorization: Bearer {api_token}` belonging to a vendor account with the `tcn_discount_redemptions` capability. Token issuance follows the standard `/gn/v1/login` flow.
+* **Request body:**
+  * `qr_token` *(string, required)* – Raw token encoded in the QR code.
+  * `vendor_id` *(int, required)* – WordPress user ID of the vendor/outlet performing the lookup. The service cross-checks that the bearer token belongs to the same vendor or an elevated operator.
+* **Success response:**
+  ```json
+  {
+    "success": true,
+    "member": {
+      "id": 123,
+      "display_name": "Ada Example",
+      "plan_tier": "gold"
+    },
+    "discount": {
+      "token": "...",
+      "label": "10% Café Beverage",
+      "type": "percentage",
+      "value": 0.1,
+      "max_uses": 1,
+      "max_uses_per_day": 1,
+      "expires_at": "2024-08-31T23:59:59+00:00"
+    },
+    "eligible": true,
+    "usage": {
+      "uses_today": 0,
+      "uses_total": 0
+    }
+  }
+  ```
+* **Failure cases:**
+  * Invalid/expired QR token → `400 gn_invalid_discount_token`.
+  * Vendor mismatch or capability missing → `403 gn_rest_forbidden`.
+  * Daily/total limits reached → `409 gn_discount_limit_reached` with contextual metadata.
+
+#### `POST /wp-json/gn/v1/discounts/transactions`
+
+* **Purpose:** Persist a completed discount redemption and update usage counters.
+* **Authentication:** Same bearer token requirement as `/discounts/lookup`.
+* **Request body:**
+  * `qr_token` *(string, required)* – Ensures atomic consumption of the entitlement.
+  * `member_id` *(int, required)* – WordPress user ID receiving the discount.
+  * `vendor_id` *(int, required)* – Vendor performing the redemption.
+  * `gross_amount` *(number, required)* – Pre-discount amount in the site currency.
+  * `discount_amount` *(number, required)* – Monetary value of the discount.
+  * `net_amount` *(number, required)* – `gross_amount - discount_amount` (validated server-side).
+  * `currency` *(string, optional, default site currency)* – ISO 4217 code.
+  * `metadata` *(object, optional)* – POS references (register, cashier, notes). Stored as JSON.
+* **Success response:**
+  ```json
+  {
+    "success": true,
+    "transaction": {
+      "id": 987,
+      "member_id": 123,
+      "vendor_id": 456,
+      "plan_tier": "gold",
+      "gross_amount": 250,
+      "discount_amount": 25,
+      "net_amount": 225,
+      "currency": "THB",
+      "metadata": {
+        "register": "POS-1"
+      },
+      "created_at": "2024-07-12T04:15:22+00:00"
+    }
+  }
+  ```
+* **Failure cases:**
+  * Missing/invalid monetary values → `400 gn_discount_amount_invalid`.
+  * Token already consumed → `409 gn_discount_already_redeemed`.
+  * Authentication mismatch → `401 gn_not_authenticated` / `403 gn_rest_forbidden`.
+
+#### `GET /wp-json/gn/v1/discounts/history`
+
+* **Purpose:** Surface transaction history and roll-up totals for members and vendors.
+* **Authentication:** `Authorization: Bearer {api_token}`. Members see their own transactions; vendors see those tied to their outlets. Admins can pass explicit filters for audits.
+* **Query parameters:**
+  * `page` *(int, optional, default 1)* and `per_page` *(int, optional, default 25, max 100)*.
+  * `member_id`, `vendor_id`, `plan_tier` *(optional)* – Require elevated capability when querying other accounts.
+  * `date_start`, `date_end` *(string, optional ISO8601)* – Filter by redemption window.
+* **Response:**
+  ```json
+  {
+    "success": true,
+    "totals": {
+      "count": 42,
+      "gross_sum": 10250,
+      "discount_sum": 1025,
+      "net_sum": 9225
+    },
+    "transactions": [
+      {
+        "id": 987,
+        "member_id": 123,
+        "vendor_id": 456,
+        "plan_tier": "gold",
+        "gross_amount": 250,
+        "discount_amount": 25,
+        "net_amount": 225,
+        "currency": "THB",
+        "metadata": {
+          "register": "POS-1"
+        },
+        "created_at": "2024-07-12T04:15:22+00:00"
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "per_page": 25,
+      "total_pages": 2
+    }
+  }
+  ```
+* **Notes:** Responses include `X-WP-Total`/`X-WP-TotalPages` headers plus the `totals` object for quick dashboard KPIs (gross, discount, net).
+
 ### 2.2 JWT Compatibility (`/wp-json/jwt-auth/v1/*`)
 
 The upstream **JWT Authentication for WP REST API** plugin exposes REST endpoints that many mobile apps and integrations rely on. TCN Platform now mirrors those routes so you can uninstall the standalone plugin while preserving the same contract.
@@ -140,9 +258,8 @@ The profile endpoints let authenticated members update their avatar through the 
 
 * **Purpose:** Upload an image file, store it in the Media Library, attach it to the current user, and return the updated `/wp/v2/users/me` payload.
 * **Authentication:** `rest_require_login` equivalent – cookie session, `X-WP-Nonce`, or bearer token via the `TokenAuthenticator`.
-* **Request:** `multipart/form-data` with an `avatar` file field or JSON containing either `avatar_url` or `avatar_base64` (optionally paired with `avatar_mime`/`avatar_filename`). Optional query/body attributes (`user_id`, `id`, `user`) are normalised to ensure users can only target their own profile.【F:includes/Rest/ProfileEndpoints.php†L150-L320】
-* **Processing:** Validates upload errors, downloads remote images when `avatar_url` is provided, decodes base64 payloads, enforces the `image/*` MIME check, inserts an attachment, generates image sizes, stores `_gn_profile_avatar_id`, `_gn_profile_avatar_urls`, and `simple_local_avatar` meta, then clears the user cache.【F:includes/Rest/ProfileEndpoints.php†L150-L360】【F:includes/Rest/ProfileEndpoints.php†L362-L520】【F:includes/Rest/ProfileEndpoints.php†L470-L612】
-* **Compatibility:** Syncs metadata expected by the Simple Local Avatars and WP User Avatar plugins so uploads made via `/gn/v1/profile/avatar` stay visible in their admin UI and vice versa; REST payloads also respect avatars set directly through those plugins.【F:includes/Rest/ProfileEndpoints.php†L362-L520】
+* **Request:** `multipart/form-data` with an `avatar` file field. Optional query/body attributes (`user_id`, `id`, `user`) are normalised to ensure users can only target their own profile.
+* **Processing:** Validates upload errors, file type (`image/*`), inserts an attachment, generates image sizes, stores `_gn_profile_avatar_id`, `_gn_profile_avatar_urls`, and `simple_local_avatar` meta, then clears the user cache.【F:includes/Rest/ProfileEndpoints.php†L52-L287】
 * **Success response:** REST representation of `/wp/v2/users/me` including merged `avatar_urls` for the generated sizes.【F:includes/Rest/ProfileEndpoints.php†L288-L338】【F:includes/Rest/ProfileEndpoints.php†L400-L427】
 * **Failure cases:**
   * Unauthenticated → `401 tcn_rest_unauthorized`.
@@ -244,7 +361,7 @@ These endpoints bridge mobile clients to WooCommerce without exposing the entire
   * `line_items` *(array, required)* – Each item needs `product_id` and optional `quantity`.
   * `shipping_lines` *(array, optional)* – Each entry may specify `method_id`, `method_title`, `total`, `total_tax`, and `taxes`.
   * `payment_method` *(string, optional)*.
-  * `set_paid` *(bool/string, optional, default `true`)*.
+  * `set_paid` *(bool/string, optional, default `true`).
   * `status` *(string, optional, default `completed`).
 * **Behaviour:** Creates an order, attaches products via `add_product()`, adds shipping line items, calculates totals, optionally marks the order paid, sets the requested status, and returns `{ id, data }` with HTTP 201. Validation ensures line items exist, product IDs resolve, and customer IDs map to users before creation.【F:includes/Rest/WooCommerceEndpoints.php†L125-L205】【F:includes/Rest/WooCommerceEndpoints.php†L376-L462】
 * **Errors:** Missing line items (`400 tcn_missing_line_items`), invalid customer (`400 tcn_invalid_customer`), missing product IDs (`400 tcn_missing_product_id`), or unknown products (`400 tcn_invalid_product`).
@@ -280,7 +397,7 @@ The tables below enumerate every method, its visibility, parameters, return valu
 
 | Class | Method | Purpose |
 | ----- | ------ | ------- |
-| `TCN\Platform\Activator` | `activate()` *static* | Ensures options defaults, seeds modules, calls `MembershipModule::activate()`, fires `tcn_platform_activated`, flushes rewrite rules. |
+| `TCN\Platform\Activator` | `activate()` *static* | Ensures options defaults, seeds modules, calls `MembershipModule::activate()`, seeds discount tables, fires `tcn_platform_activated`, flushes rewrite rules. |
 | `TCN\Platform\Deactivator` | `deactivate()` *static* | Fires `tcn_platform_deactivated` and flushes rewrite rules. |
 
 ### 3.5 Admin UI
