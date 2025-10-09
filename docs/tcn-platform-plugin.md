@@ -217,6 +217,9 @@ The Password Login API now exposes three REST routes that let mobile clients val
 
 ## 📝 Release Notes
 
+### 0.3.79
+- Add discount lookup, transaction, and history presets to the API tester so vendor rollouts can be exercised entirely inside WordPress before going live.
+
 ### 0.3.78
 - Escape the avatar upload cURL placeholders in the API tester preset so PHP no longer emits warnings or fatal errors while rendering the admin page.
 
