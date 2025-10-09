@@ -2,6 +2,7 @@
 namespace TCN\Platform\Auth;
 
 use TCN\Platform\Auth\TokenAuthenticator;
+use TCN\Platform\Support\Accounts;
 use TCN\Platform\Support\Options;
 use WP_Error;
 use WP_REST_Request;
@@ -174,6 +175,48 @@ class PasswordLoginService {
 
         $this->reset_rate_limit( $rate_context );
 
+        Accounts::ensure_defaults( $user->ID );
+        $snapshot = Accounts::get_account_snapshot( $user->ID );
+
+        if ( Accounts::STATUS_SUSPENDED === $snapshot['account_status'] ) {
+            return new WP_Error(
+                'gn_account_suspended',
+                __( 'Your account is suspended. Contact support for assistance.', 'tcnapp-connector' ),
+                array( 'status' => 403 )
+            );
+        }
+
+        if ( Accounts::TYPE_VENDOR === $snapshot['account_type'] ) {
+            if ( Accounts::STATUS_PENDING === $snapshot['vendor_status'] ) {
+                return new WP_Error(
+                    'gn_vendor_pending',
+                    __( 'Your vendor account is pending approval.', 'tcnapp-connector' ),
+                    array( 'status' => 403 )
+                );
+            }
+
+            if ( Accounts::STATUS_REJECTED === $snapshot['vendor_status'] ) {
+                $data = array( 'status' => 403 );
+                if ( isset( $snapshot['vendor_rejection_reason'] ) ) {
+                    $data['reason'] = $snapshot['vendor_rejection_reason'];
+                }
+
+                return new WP_Error(
+                    'gn_vendor_rejected',
+                    __( 'Your vendor account has been rejected. Contact support for assistance.', 'tcnapp-connector' ),
+                    $data
+                );
+            }
+
+            if ( Accounts::STATUS_SUSPENDED === $snapshot['vendor_status'] ) {
+                return new WP_Error(
+                    'gn_vendor_suspended',
+                    __( 'Your vendor account is suspended. Contact support for assistance.', 'tcnapp-connector' ),
+                    array( 'status' => 403 )
+                );
+            }
+        }
+
         $response = array(
             'success' => true,
             'user'    => $this->prepare_user_payload( $user ),
@@ -211,11 +254,12 @@ class PasswordLoginService {
             return $https;
         }
 
-        $username   = sanitize_user( (string) $request->get_param( 'username' ), true );
-        $email      = sanitize_email( (string) $request->get_param( 'email' ) );
-        $password   = (string) $request->get_param( 'password' );
-        $first_name = sanitize_text_field( (string) $request->get_param( 'first_name' ) );
-        $last_name  = sanitize_text_field( (string) $request->get_param( 'last_name' ) );
+        $username     = sanitize_user( (string) $request->get_param( 'username' ), true );
+        $email        = sanitize_email( (string) $request->get_param( 'email' ) );
+        $password     = (string) $request->get_param( 'password' );
+        $first_name   = sanitize_text_field( (string) $request->get_param( 'first_name' ) );
+        $last_name    = sanitize_text_field( (string) $request->get_param( 'last_name' ) );
+        $account_type = (string) $request->get_param( 'account_type' );
 
         if ( empty( $username ) || empty( $email ) || empty( $password ) ) {
             return new WP_Error( 'gn_missing_fields', __( 'Username, email, and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
@@ -252,6 +296,8 @@ class PasswordLoginService {
                 'display_name' => trim( $first_name . ' ' . $last_name ) ?: $username,
             )
         );
+
+        Accounts::bootstrap_new_account( $user_id, $account_type );
 
         /**
          * Fires after a user is registered through the Password Login API.
@@ -462,6 +508,9 @@ class PasswordLoginService {
     }
 
     protected function prepare_user_payload( WP_User $user ): array {
+        Accounts::ensure_defaults( $user->ID );
+        $snapshot = Accounts::get_account_snapshot( $user->ID );
+
         $payload = array(
             'id'               => $user->ID,
             'username'         => $user->user_login,
@@ -471,7 +520,14 @@ class PasswordLoginService {
             'last_name'        => $user->last_name,
             'membership_level' => get_user_meta( $user->ID, '_tcn_membership_level', true ),
             'sponsor_id'       => (int) get_user_meta( $user->ID, '_tcn_sponsor_id', true ),
+            'account_type'     => $snapshot['account_type'],
+            'account_status'   => $snapshot['account_status'],
+            'vendor_status'    => $snapshot['vendor_status'],
         );
+
+        if ( isset( $snapshot['vendor_rejection_reason'] ) ) {
+            $payload['vendor_rejection_reason'] = $snapshot['vendor_rejection_reason'];
+        }
 
         $woocommerce_credentials = $this->get_woocommerce_credentials();
         if ( ! empty( $woocommerce_credentials ) ) {

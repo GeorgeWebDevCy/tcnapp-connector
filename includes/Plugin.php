@@ -10,6 +10,7 @@ use TCN\Platform\Auth\JwtAuthEndpoints;
 use TCN\Platform\Auth\PasswordLoginService;
 use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Membership\MembershipModule;
+use TCN\Platform\Rest\AdminDirectoryEndpoints;
 use TCN\Platform\Rest\DiscountEndpoints;
 use TCN\Platform\Rest\ProfileEndpoints;
 use TCN\Platform\Rest\WooCommerceEndpoints;
@@ -99,6 +100,7 @@ class Plugin {
             $this->services[] = new PasswordLoginService( $token_authenticator );
             $this->services[] = new JwtAuthEndpoints();
             $this->services[] = new DiscountEndpoints( $token_authenticator );
+            $this->services[] = new AdminDirectoryEndpoints( $token_authenticator );
         } else {
             // If the module is disabled we still expose the legacy action for backwards
             // compatibility so extensions that expect the class alias do not break.

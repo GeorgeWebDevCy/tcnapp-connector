@@ -217,6 +217,11 @@ The Password Login API now exposes three REST routes that let mobile clients val
 
 ## 📝 Release Notes
 
+### 0.3.81
+- Add an admin-only directory API (`/tcn/v1/admin/*`) that lists accounts and streamlines vendor approvals/rejections with status tracking.
+- Persist account type/status metadata on registrations, enforce vendor gating during `/gn/v1/login`, and expose the fields in REST payloads for mobile moderation.
+- Skip automated welcome orders for vendor signups and extend the API tester with presets for the new admin endpoints.
+
 ### 0.3.80
 - Use stored profile photo attachments when WordPress resolves avatars so member uploads replace Gravatar everywhere.
 - Cache avatar URL metadata across contexts and honour requested URL schemes when rendering avatars.

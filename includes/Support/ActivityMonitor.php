@@ -18,7 +18,7 @@ class ActivityMonitor {
      */
     protected $namespaces;
 
-    public function __construct( array $namespaces = array( 'gn/v1', 'tcn-mlm/v1' ) ) {
+    public function __construct( array $namespaces = array( 'gn/v1', 'tcn-mlm/v1', 'tcn/v1' ) ) {
         $this->namespaces = $namespaces;
     }
 
