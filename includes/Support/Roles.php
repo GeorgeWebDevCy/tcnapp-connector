@@ -12,6 +12,7 @@ class Roles {
      */
     public static function ensure_roles(): void {
         self::ensure_app_user_role();
+        self::ensure_discount_capabilities();
     }
 
     /**
@@ -37,6 +38,24 @@ class Roles {
 
             if ( $role->has_cap( $capability ) ) {
                 $role->remove_cap( $capability );
+            }
+        }
+    }
+
+    /**
+     * Grant the discount redemption capability to administrative WooCommerce roles.
+     */
+    protected static function ensure_discount_capabilities(): void {
+        $roles = array( 'administrator', 'shop_manager' );
+
+        foreach ( $roles as $role_name ) {
+            $role = get_role( $role_name );
+            if ( ! $role instanceof WP_Role ) {
+                continue;
+            }
+
+            if ( ! $role->has_cap( 'tcn_discount_redemptions' ) ) {
+                $role->add_cap( 'tcn_discount_redemptions' );
             }
         }
     }
