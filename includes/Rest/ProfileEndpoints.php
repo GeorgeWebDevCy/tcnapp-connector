@@ -934,7 +934,16 @@ class ProfileEndpoints {
         $avatar_urls = array();
 
         if ( $avatar_id > 0 ) {
-            $avatar_urls = $this->prepare_avatar_urls( $avatar_id );
+            $stored_urls = get_user_meta( $user->ID, '_gn_profile_avatar_urls', true );
+            $avatar_urls = $this->normalise_avatar_url_map( $stored_urls );
+
+            if ( empty( $avatar_urls ) ) {
+                $avatar_urls = $this->prepare_avatar_urls( $avatar_id );
+
+                if ( ! empty( $avatar_urls ) ) {
+                    update_user_meta( $user->ID, '_gn_profile_avatar_urls', $avatar_urls );
+                }
+            }
         }
 
         if ( empty( $avatar_urls ) ) {
@@ -1093,6 +1102,37 @@ class ProfileEndpoints {
         }
 
         return $urls;
+    }
+
+    /**
+     * Normalise a stored avatar URL map into a predictable array.
+     *
+     * @param mixed $urls User meta value potentially containing avatar URLs.
+     */
+    protected function normalise_avatar_url_map( $urls ): array {
+        if ( ! is_array( $urls ) || empty( $urls ) ) {
+            return array();
+        }
+
+        $normalised = array();
+
+        foreach ( $urls as $key => $value ) {
+            if ( ! is_string( $key ) ) {
+                $key = (string) $key;
+            }
+
+            if ( 'media_id' === $key ) {
+                continue;
+            }
+
+            if ( ! is_string( $value ) || '' === $value ) {
+                continue;
+            }
+
+            $normalised[ $key ] = $value;
+        }
+
+        return $normalised;
     }
 
     /**
@@ -1296,9 +1336,10 @@ class ProfileEndpoints {
         $urls          = array();
 
         if ( $attachment_id > 0 ) {
-            $urls = get_user_meta( $user_id, '_gn_profile_avatar_urls', true );
+            $stored_urls = get_user_meta( $user_id, '_gn_profile_avatar_urls', true );
+            $urls        = $this->normalise_avatar_url_map( $stored_urls );
 
-            if ( ! is_array( $urls ) || empty( $urls ) ) {
+            if ( empty( $urls ) ) {
                 $urls = $this->prepare_avatar_urls( $attachment_id );
 
                 if ( ! empty( $urls ) ) {
