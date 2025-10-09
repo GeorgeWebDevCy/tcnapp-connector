@@ -635,10 +635,10 @@ class ApiTesterPage {
   -H \"Authorization: Bearer paste-login-token\" \\\
   -H \"Content-Type: application/json\" \\\
   -d '{\"avatar_url\":\"https://example.com/photo.jpg\"}' \\\
-  \"%1$s\"\n\nMultipart example:\n\ncurl -X POST \\\
+  \"%1\$s\"\n\nMultipart example:\n\ncurl -X POST \\\
   -H \"Authorization: Bearer paste-login-token\" \\\
   -F \"avatar=@/path/to/avatar.jpg\" \\\
-  \"%2$s\"", 'tcnapp-connector' ),
+  \"%2\$s\"", 'tcnapp-connector' ),
                     $avatar_url,
                     $avatar_url
                 ),
