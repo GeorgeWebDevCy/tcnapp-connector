@@ -217,8 +217,8 @@ The Password Login API now exposes three REST routes that let mobile clients val
 
 ## 📝 Release Notes
 
-### 0.3.77
-- Prepare the 0.3.77 release by updating the plugin metadata.
+### 0.3.78
+- Escape the avatar upload cURL placeholders in the API tester preset so PHP no longer emits warnings or fatal errors while rendering the admin page.
 
 ### 0.3.76
 - Introduce `/gn/v1/discounts/lookup`, `/gn/v1/discounts/transactions`, and `/gn/v1/discounts/history` endpoints with vendor capability checks, automatic usage tracking, and transaction storage in the new `tcn_discount_transactions` table.
