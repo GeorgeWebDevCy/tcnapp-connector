@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.78
+Stable tag: 0.3.79
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.79 =
+* Add presets for the `/gn/v1/discounts/lookup`, `/discounts/transactions`, and `/discounts/history` endpoints to the API tester so administrators can validate the QR redemption flow end-to-end.
 
 = 0.3.78 =
 * Fix the API tester avatar upload example so the preset renders without PHP warnings or fatal errors.

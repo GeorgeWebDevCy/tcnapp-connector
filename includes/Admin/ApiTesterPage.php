@@ -369,25 +369,28 @@ class ApiTesterPage {
      * @return array<int, array<string, string>>
      */
     protected function get_examples(): array {
-        $login_url        = home_url( '/wp-json/gn/v1/login' );
-        $register_url     = home_url( '/wp-json/gn/v1/register' );
-        $forgot_url       = home_url( '/wp-json/gn/v1/forgot-password' );
-        $reset_url        = home_url( '/wp-json/gn/v1/reset-password' );
-        $change_url       = home_url( '/wp-json/gn/v1/change-password' );
-        $avatar_url       = home_url( '/wp-json/gn/v1/profile/avatar' );
-        $me_url           = home_url( '/wp-json/gn/v1/me' );
-        $log_url          = home_url( '/wp-json/gn/v1/log' );
-        $plans_url        = home_url( '/wp-json/gn/v1/memberships/plans' );
-        $stripe_intent    = home_url( '/wp-json/gn/v1/memberships/stripe-intent' );
-        $confirm_upgrade  = home_url( '/wp-json/gn/v1/memberships/confirm' );
-        $member_url       = home_url( '/wp-json/tcn-mlm/v1/member' );
-        $genealogy_url    = home_url( '/wp-json/tcn-mlm/v1/genealogy' );
-        $commissions_url  = home_url( '/wp-json/tcn-mlm/v1/commissions' );
-        $customer_url     = home_url( '/wp-json/gn/v1/customers' );
-        $orders_url       = home_url( '/wp-json/gn/v1/orders' );
-        $jwt_token_url    = home_url( '/wp-json/jwt-auth/v1/token' );
-        $jwt_refresh_url  = home_url( '/wp-json/jwt-auth/v1/token/refresh' );
-        $jwt_validate_url = home_url( '/wp-json/jwt-auth/v1/token/validate' );
+        $login_url               = home_url( '/wp-json/gn/v1/login' );
+        $register_url            = home_url( '/wp-json/gn/v1/register' );
+        $forgot_url              = home_url( '/wp-json/gn/v1/forgot-password' );
+        $reset_url               = home_url( '/wp-json/gn/v1/reset-password' );
+        $change_url              = home_url( '/wp-json/gn/v1/change-password' );
+        $avatar_url              = home_url( '/wp-json/gn/v1/profile/avatar' );
+        $me_url                  = home_url( '/wp-json/gn/v1/me' );
+        $log_url                 = home_url( '/wp-json/gn/v1/log' );
+        $plans_url               = home_url( '/wp-json/gn/v1/memberships/plans' );
+        $stripe_intent           = home_url( '/wp-json/gn/v1/memberships/stripe-intent' );
+        $confirm_upgrade         = home_url( '/wp-json/gn/v1/memberships/confirm' );
+        $member_url              = home_url( '/wp-json/tcn-mlm/v1/member' );
+        $genealogy_url           = home_url( '/wp-json/tcn-mlm/v1/genealogy' );
+        $commissions_url         = home_url( '/wp-json/tcn-mlm/v1/commissions' );
+        $customer_url            = home_url( '/wp-json/gn/v1/customers' );
+        $orders_url              = home_url( '/wp-json/gn/v1/orders' );
+        $jwt_token_url           = home_url( '/wp-json/jwt-auth/v1/token' );
+        $jwt_refresh_url         = home_url( '/wp-json/jwt-auth/v1/token/refresh' );
+        $jwt_validate_url        = home_url( '/wp-json/jwt-auth/v1/token/validate' );
+        $discount_lookup_url     = home_url( '/wp-json/gn/v1/discounts/lookup' );
+        $discount_transaction_url= home_url( '/wp-json/gn/v1/discounts/transactions' );
+        $discount_history_url    = home_url( '/wp-json/gn/v1/discounts/history' );
 
         return array(
             array(
@@ -922,6 +925,146 @@ class ApiTesterPage {
                         'id'   => 555,
                         'data' => array(
                             'status' => 'completed',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $discount_lookup_url,
+                'description' => __( 'Validate a scanned discount QR token and review eligibility.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires an `Authorization: Bearer` token issued to a vendor or administrator.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-api-token-here',
+                        'Content-Type'  => 'application/json',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'qr_token'  => 'promo-2024',
+                        'vendor_id' => 456,
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success'  => true,
+                        'member'   => array(
+                            'id'           => 123,
+                            'display_name' => 'Taylor Jordan',
+                            'plan_tier'    => 'gold',
+                        ),
+                        'discount' => array(
+                            'token'            => 'promo-2024',
+                            'label'            => 'Songkran Flash Sale',
+                            'type'             => 'percentage',
+                            'value'            => 15,
+                            'max_uses'         => 100,
+                            'max_uses_per_day' => 5,
+                            'expires_at'       => '2024-12-31 23:59:59',
+                        ),
+                        'eligible' => true,
+                        'usage'    => array(
+                            'uses_total' => 2,
+                            'uses_today' => 1,
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $discount_transaction_url,
+                'description' => __( 'Record a redeemed discount and generate a transaction receipt.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires vendor authentication and the QR token from a successful lookup.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-api-token-here',
+                        'Content-Type'  => 'application/json',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'qr_token'        => 'promo-2024',
+                        'member_id'       => 123,
+                        'vendor_id'       => 456,
+                        'gross_amount'    => 1000,
+                        'discount_amount' => 150,
+                        'net_amount'      => 850,
+                        'currency'        => 'THB',
+                        'metadata'        => array(
+                            'pos_id'   => 'POS-42',
+                            'receipt'  => 'RCPT-1001',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success'     => true,
+                        'transaction' => array(
+                            'id'              => 987,
+                            'member_id'       => 123,
+                            'vendor_id'       => 456,
+                            'plan_tier'       => 'gold',
+                            'gross_amount'    => 1000,
+                            'discount_amount' => 150,
+                            'net_amount'      => 850,
+                            'currency'        => 'THB',
+                            'metadata'        => array(
+                                'pos_id'  => 'POS-42',
+                                'receipt' => 'RCPT-1001',
+                            ),
+                            'created_at'      => '2024-04-13 10:05:00',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'GET',
+                'url'         => $discount_history_url . '?vendor_id=456&per_page=5',
+                'description' => __( 'Review recent discount redemptions and aggregated totals.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires authentication; vendor tokens default to their own history while admins can filter by vendor or member.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-api-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success' => true,
+                        'totals'  => array(
+                            'gross'    => 5025,
+                            'discount' => 750,
+                            'net'      => 4275,
+                        ),
+                        'transactions' => array(
+                            array(
+                                'id'              => 987,
+                                'member_id'       => 123,
+                                'vendor_id'       => 456,
+                                'plan_tier'       => 'gold',
+                                'gross_amount'    => 1000,
+                                'discount_amount' => 150,
+                                'net_amount'      => 850,
+                                'currency'        => 'THB',
+                                'metadata'        => array(
+                                    'pos_id' => 'POS-42',
+                                ),
+                                'created_at'      => '2024-04-13 10:05:00',
+                            ),
+                        ),
+                        'pagination' => array(
+                            'page'        => 1,
+                            'per_page'    => 5,
+                            'total_pages' => 3,
                         ),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
