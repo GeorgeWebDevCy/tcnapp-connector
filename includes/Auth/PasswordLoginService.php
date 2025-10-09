@@ -526,6 +526,12 @@ class PasswordLoginService {
         Accounts::ensure_defaults( $user->ID );
         $snapshot = Accounts::get_account_snapshot( $user->ID );
 
+        if ( user_can( $user, 'manage_options' ) ) {
+            $snapshot['account_type']   = Accounts::TYPE_VENDOR;
+            $snapshot['account_status'] = Accounts::STATUS_ACTIVE;
+            $snapshot['vendor_status']  = Accounts::STATUS_ACTIVE;
+        }
+
         $payload = array(
             'id'               => $user->ID,
             'username'         => $user->user_login,

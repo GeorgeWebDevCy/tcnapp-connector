@@ -31,6 +31,7 @@ class Accounts {
             update_user_meta( $user_id, self::META_ACCOUNT_STATUS, self::STATUS_PENDING );
             update_user_meta( $user_id, self::META_VENDOR_STATUS, self::STATUS_PENDING );
             delete_user_meta( $user_id, self::META_VENDOR_REJECTION_REASON );
+            Roles::assign_vendor_role( $user_id );
             return;
         }
 
