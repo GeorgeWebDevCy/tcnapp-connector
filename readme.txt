@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.82
+Stable tag: 0.3.83
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,10 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.83 =
+* Treat administrators as active vendors in login payloads so the mobile network tools surface vendor directories immediately after WordPress authentication.【F:includes/Auth/PasswordLoginService.php†L500-L513】
+* Create and assign a dedicated Vendor role to new storefront accounts so registrations receive discount redemption access out of the box.【F:includes/Support/Roles.php†L8-L102】【F:includes/Support/Accounts.php†L26-L35】
 
 = 0.3.82 =
 * Add public `GET /wp-json/gn/v1/vendors/tiers` endpoint that exposes the vendor tier catalogue (Sapphire/Diamond) with discount matrices and marketing benefits for onboarding screens.【F:includes/Rest/VendorEndpoints.php†L1-L73】
