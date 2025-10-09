@@ -409,19 +409,27 @@ class PasswordLoginService {
             return $served;
         }
 
-        $origin          = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
-        $allowed_origin  = isset( $this->settings['allowed_origin'] ) ? $this->settings['allowed_origin'] : '';
-        $allow_any_origin = empty( $allowed_origin ) && ! empty( $origin );
+        $origin         = isset( $_SERVER['HTTP_ORIGIN'] ) ? esc_url_raw( wp_unslash( $_SERVER['HTTP_ORIGIN'] ) ) : '';
+        $allowed_origin = isset( $this->settings['allowed_origin'] ) ? trim( (string) $this->settings['allowed_origin'] ) : '';
 
-        if ( ! headers_sent() ) {
-            if ( $allowed_origin ) {
-                if ( 0 === strcasecmp( $allowed_origin, $origin ) ) {
-                    header( 'Access-Control-Allow-Origin: ' . $allowed_origin );
+        if ( '' === $allowed_origin ) {
+            $home_url = home_url();
+
+            if ( is_string( $home_url ) && '' !== $home_url ) {
+                $parsed_home = wp_parse_url( $home_url );
+
+                if ( is_array( $parsed_home ) && isset( $parsed_home['scheme'], $parsed_home['host'] ) ) {
+                    $allowed_origin = $parsed_home['scheme'] . '://' . $parsed_home['host'];
+
+                    if ( isset( $parsed_home['port'] ) ) {
+                        $allowed_origin .= ':' . $parsed_home['port'];
+                    }
                 }
-            } elseif ( $allow_any_origin ) {
-                header( 'Access-Control-Allow-Origin: ' . $origin );
             }
+        }
 
+        if ( ! headers_sent() && $origin && $allowed_origin && 0 === strcasecmp( $allowed_origin, $origin ) ) {
+            header( 'Access-Control-Allow-Origin: ' . $allowed_origin );
             header( 'Access-Control-Allow-Credentials: true' );
             header( 'Access-Control-Allow-Headers: Authorization, Content-Type, X-WP-Nonce' );
             header( 'Access-Control-Allow-Methods: POST, GET, OPTIONS' );
