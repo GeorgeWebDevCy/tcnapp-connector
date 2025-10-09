@@ -2,6 +2,7 @@
 namespace TCN\Platform\Membership;
 
 use TCN\Platform\Auth\TokenAuthenticator;
+use TCN\Platform\Support\Accounts;
 use TCN\Platform\Support\Options;
 use TCN\Platform\Support\Roles;
 use WP_Error;
@@ -166,6 +167,8 @@ class MembershipModule {
     }
 
     public function handle_api_registration( int $user_id, WP_REST_Request $request ): void {
+        Accounts::ensure_defaults( $user_id );
+
         $this->ensure_sponsor_assignment( $user_id );
 
         if ( ! get_user_meta( $user_id, '_tcn_membership_level', true ) ) {
@@ -784,6 +787,11 @@ class MembershipModule {
 
     protected function maybe_create_welcome_order( int $user_id, WP_REST_Request $request ): void {
         if ( get_user_meta( $user_id, '_tcn_welcome_order_id', true ) ) {
+            return;
+        }
+
+        $snapshot = Accounts::get_account_snapshot( $user_id );
+        if ( Accounts::TYPE_VENDOR === $snapshot['account_type'] ) {
             return;
         }
 

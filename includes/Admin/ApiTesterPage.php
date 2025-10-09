@@ -388,9 +388,12 @@ class ApiTesterPage {
         $jwt_token_url           = home_url( '/wp-json/jwt-auth/v1/token' );
         $jwt_refresh_url         = home_url( '/wp-json/jwt-auth/v1/token/refresh' );
         $jwt_validate_url        = home_url( '/wp-json/jwt-auth/v1/token/validate' );
-        $discount_lookup_url     = home_url( '/wp-json/gn/v1/discounts/lookup' );
-        $discount_transaction_url= home_url( '/wp-json/gn/v1/discounts/transactions' );
-        $discount_history_url    = home_url( '/wp-json/gn/v1/discounts/history' );
+        $discount_lookup_url      = home_url( '/wp-json/gn/v1/discounts/lookup' );
+        $discount_transaction_url = home_url( '/wp-json/gn/v1/discounts/transactions' );
+        $discount_history_url     = home_url( '/wp-json/gn/v1/discounts/history' );
+        $admin_accounts_url       = home_url( '/wp-json/tcn/v1/admin/accounts' );
+        $admin_vendor_approve_url = home_url( '/wp-json/tcn/v1/admin/vendors/123/approve' );
+        $admin_vendor_reject_url  = home_url( '/wp-json/tcn/v1/admin/vendors/123/reject' );
 
         return array(
             array(
@@ -1065,6 +1068,94 @@ class ApiTesterPage {
                             'page'        => 1,
                             'per_page'    => 5,
                             'total_pages' => 3,
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'GET',
+                'url'         => $admin_accounts_url,
+                'description' => __( 'List member and vendor accounts for moderation.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires an administrator bearer token. Supports optional page/per_page query params.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-admin-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success'  => true,
+                        'accounts' => array(
+                            array(
+                                'id'             => 987,
+                                'username'       => 'pendingvendor',
+                                'email'          => 'vendor@example.com',
+                                'account_type'   => 'vendor',
+                                'account_status' => 'pending',
+                                'vendor_status'  => 'pending',
+                            ),
+                        ),
+                        'pagination' => array(
+                            'page'        => 1,
+                            'per_page'    => 25,
+                            'total_pages' => 1,
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $admin_vendor_approve_url,
+                'description' => __( 'Approve a pending vendor so they can log in.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires an administrator bearer token. Replace the placeholder ID with the vendor user ID.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Authorization' => 'Bearer paste-admin-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success' => true,
+                        'vendor'  => array(
+                            'account_type'   => 'vendor',
+                            'account_status' => 'active',
+                            'vendor_status'  => 'active',
+                        ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+            ),
+            array(
+                'method'      => 'POST',
+                'url'         => $admin_vendor_reject_url,
+                'description' => __( 'Reject a vendor application and capture the review feedback.', 'tcnapp-connector' ),
+                'note'        => __( 'Requires an administrator bearer token. Include a JSON body with an optional reason field.', 'tcnapp-connector' ),
+                'headers'     => wp_json_encode(
+                    array(
+                        'Content-Type'  => 'application/json',
+                        'Authorization' => 'Bearer paste-admin-token-here',
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'body'        => wp_json_encode(
+                    array(
+                        'reason' => __( 'Provide your storefront licence before we can approve the application.', 'tcnapp-connector' ),
+                    ),
+                    JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
+                ) ?: '',
+                'response'    => wp_json_encode(
+                    array(
+                        'success' => true,
+                        'vendor'  => array(
+                            'account_type'   => 'vendor',
+                            'account_status' => 'rejected',
+                            'vendor_status'  => 'rejected',
                         ),
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES

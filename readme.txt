@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.80
+Stable tag: 0.3.81
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,11 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.81 =
+* Add admin-only `/tcn/v1/admin/*` endpoints for reviewing accounts, approving vendors, and recording rejection reasons.【F:includes/Rest/AdminDirectoryEndpoints.php†L24-L199】
+* Surface account type/status metadata in login payloads, block pending/rejected vendors during authentication, and skip welcome orders for vendor registrations.【F:includes/Auth/PasswordLoginService.php†L150-L274】【F:includes/Membership/MembershipModule.php†L169-L196】
+* Extend the admin API tester with presets for the directory endpoints so releases can be validated inside WordPress.【F:includes/Admin/ApiTesterPage.php†L371-L1092】
 
 = 0.3.80 =
 * Honour stored profile photo attachments across WordPress avatar lookups so user uploads appear outside of REST responses too.
