@@ -679,10 +679,37 @@ class PasswordLoginService {
     }
 
     protected function maybe_enforce_https( WP_REST_Request $request ) {
-        $allow_dev = ! empty( $this->settings['allow_dev_http'] ) && defined( 'WP_DEBUG' ) && WP_DEBUG;
-        $allow_dev = apply_filters( 'gn_password_api_allow_dev_http', $allow_dev, $request );
+        if ( is_ssl() ) {
+            return true;
+        }
 
-        if ( is_ssl() || $allow_dev ) {
+        $wp_debug   = defined( 'WP_DEBUG' ) && WP_DEBUG;
+        $host_value = $request->get_header( 'host' );
+        $host_value = is_string( $host_value ) ? trim( $host_value ) : '';
+        $host_name  = '';
+
+        if ( '' !== $host_value ) {
+            $parsed_host = wp_parse_url( 'http://' . $host_value, PHP_URL_HOST );
+            if ( is_string( $parsed_host ) ) {
+                $host_name = strtolower( $parsed_host );
+            }
+        }
+
+        $is_local = in_array( $host_name, array( 'localhost', '127.0.0.1', '::1' ), true );
+
+        $allow_dev_http = false;
+
+        if ( $wp_debug && ! empty( $this->settings['allow_dev_http'] ) ) {
+            $allow_dev_http = true;
+        }
+
+        if ( $wp_debug && $is_local ) {
+            $allow_dev_http = true;
+        }
+
+        $allow_dev_http = apply_filters( 'gn_password_api_allow_dev_http', $allow_dev_http, $request );
+
+        if ( $allow_dev_http ) {
             return true;
         }
 
@@ -773,22 +800,27 @@ class PasswordLoginService {
             );
         }
 
-        if ( $jwt_token instanceof WP_Error || ! is_array( $jwt_token ) ) {
-            $token_string = wp_generate_password( 64, false );
-        } else {
-            $token_string = $jwt_token['token'];
-            $payload      = $jwt_token['payload'];
+        $token_string = '';
 
-            if ( isset( $payload['exp'] ) && (int) $payload['exp'] > 0 ) {
-                $expires_at = (int) $payload['exp'];
+        if ( $jwt_token instanceof WP_Error ) {
+            $jwt_token = null;
+        }
+
+        if ( is_array( $jwt_token ) ) {
+            if ( isset( $jwt_token['payload'] ) && is_array( $jwt_token['payload'] ) ) {
+                $payload = $jwt_token['payload'];
+
+                if ( isset( $payload['exp'] ) && (int) $payload['exp'] > 0 ) {
+                    $expires_at = (int) $payload['exp'];
+                }
             }
-        }
 
-        if ( ! is_string( $token_string ) ) {
-            $token_string = '';
+            if ( isset( $jwt_token['token'] ) && is_string( $jwt_token['token'] ) ) {
+                $token_string = trim( $jwt_token['token'] );
+            }
+        } elseif ( is_string( $jwt_token ) ) {
+            $token_string = trim( $jwt_token );
         }
-
-        $token_string = trim( $token_string );
 
         if ( '' === $token_string ) {
             $token_string = wp_generate_password( 64, false );

@@ -17,7 +17,7 @@ Toggle modules under **TCN Platform → Modules**. The Membership & MLM module s
 - WooCommerce 7.0+
 - PHP 7.4+
 - MySQL 5.7+ / MariaDB 10.3+
-- HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless `Allow Dev HTTP` is enabled while `WP_DEBUG` is true)
+- HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless `WP_DEBUG` is enabled and you either toggle **Allow Dev HTTP**, call from localhost/loopback, or hook into `gn_password_api_allow_dev_http`)
 
 ## 🚀 Installation
 
@@ -34,7 +34,8 @@ Toggle modules under **TCN Platform → Modules**. The Membership & MLM module s
 
 ### Password Login API Settings
 - **Allowed CORS Origin** – Exact origin (scheme + host + optional port) allowed to call `gn/v1` endpoints cross-origin. Leave blank to restrict to same-origin requests.
-- **Allow Dev HTTP** – Permits non-HTTPS requests when `WP_DEBUG` is true. Only enable for local development environments.
+- **Allow Dev HTTP** – Permits non-HTTPS requests when `WP_DEBUG` is true. Localhost/loopback requests are automatically allowed during development, and the `gn_password_api_allow_dev_http` filter can force other dev hosts through.
+- **JWT Auth Secret** – Define `JWT_AUTH_SECRET_KEY` in `wp-config.php` with a long random string so bearer tokens are signed JWTs instead of opaque fallbacks.
 
 These settings persist in the `gn_login_api_settings` option. A compatibility shim keeps `GN_Password_Login_API` usable for legacy code.
 

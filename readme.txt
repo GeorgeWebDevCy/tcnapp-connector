@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.86
+Stable tag: 0.3.87
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -16,7 +16,7 @@ TCN Platform unifies the WooCommerce membership/MLM engine and the GN Password L
 * WooCommerce 7.0 or later
 * PHP 7.4 or later
 * MySQL 5.7 / MariaDB 10.3 or later
-* HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless "Allow Dev HTTP" is enabled while `WP_DEBUG` is true)
+* HTTPS (strongly recommended; REST login endpoints reject non-SSL requests unless `WP_DEBUG` is enabled and you toggle "Allow Dev HTTP", call from localhost/loopback, or hook into `gn_password_api_allow_dev_http`)
 
 === Modules ===
 * **Membership & MLM (always on)** – Seeds and syncs Blue/Gold/Platinum/Black membership products, manages genealogy, promotes members based on network rules, tracks commissions, exposes `tcn-mlm/v1/*` REST endpoints, and injects dashboards into WooCommerce My Account.
@@ -101,6 +101,11 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.87 =
+* Allow localhost and loopback requests while `WP_DEBUG` is enabled, so developers can exercise the login endpoints over HTTP without toggling production options.
+* Harden API token generation to account for empty JWT secrets by trimming the returned value and falling back to random bearer strings when necessary.
+* Document the JWT secret requirement and relaxed HTTPS behaviour in the platform reference for easier troubleshooting during onboarding.
 
 = 0.3.86 =
 * Add a `/wp-json/gn/v1/token/refresh` endpoint that refreshes both transient and JWT API tokens for the mobile app.

@@ -24,7 +24,7 @@ Every endpoint listed below has a matching preset in the tester, so you can vali
 
 ### 2.1 Password Login & Session API (`/wp-json/gn/v1/*`)
 
-The password login service powers the mobile authentication flow, rate-limits brute force attempts, and mints bearer tokens for subsequent API calls. All endpoints enforce HTTPS unless the **Login → Allow HTTP on WP_DEBUG sites** toggle is enabled and the request passes the `gn_password_api_allow_dev_http` filter. Each successful authentication response embeds a `user` payload with ID, username, membership metadata, sponsor ID, account profile metadata, and optional WooCommerce consumer credentials when `WOOCOMMERCE_CONSUMER_KEY`/`WOOCOMMERCE_CONSUMER_SECRET` constants are defined.
+The password login service powers the mobile authentication flow, rate-limits brute force attempts, and mints bearer tokens for subsequent API calls. All endpoints enforce HTTPS unless `WP_DEBUG` is enabled and either the **Login → Allow HTTP on WP_DEBUG sites** toggle is active, the request originates from localhost/loopback, or the `gn_password_api_allow_dev_http` filter returns `true`. Each successful authentication response embeds a `user` payload with ID, username, membership metadata, sponsor ID, account profile metadata, and optional WooCommerce consumer credentials when `WOOCOMMERCE_CONSUMER_KEY`/`WOOCOMMERCE_CONSUMER_SECRET` constants are defined.
 
 | Route | Method | Auth | Purpose |
 | ----- | ------ | ---- | ------- |
@@ -49,6 +49,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 * **Token lifetime:** `token` (for one-click WordPress login) and `api_token` (for REST bearer auth) both default to seven days and are stored as WordPress transients with matching expiration timestamps.【F:includes/Auth/PasswordLoginService.php†L211-L240】【F:includes/Auth/PasswordLoginService.php†L560-L599】
 * **User payload:** Responses include `id`, `username`, `email`, `display_name`, `first_name`, `last_name`, `membership_level`, `sponsor_id`, `account_type`, `account_status`, `vendor_status`, optional `vendor_tier`, optional `vendor_rejection_reason`, and optional WooCommerce credentials (consumer key/secret + base64 `authorization`).【F:includes/Auth/PasswordLoginService.php†L472-L510】
 * **Error format:** Failures are returned as `WP_Error` with descriptive messages and HTTP codes (400 for validation, 401/403 for auth, 404 for unknown users, 409 for conflicts, 429 for rate limiting).【F:includes/Auth/PasswordLoginService.php†L146-L392】
+* **JWT secret:** Define `JWT_AUTH_SECRET_KEY` in `wp-config.php` to issue signed JWT bearer tokens. When the key is missing or empty, the login service now trims the generated value and falls back to a 64-character random string so responses always contain a usable `api_token`.【F:includes/Auth/PasswordLoginService.php†L785-L828】【F:includes/Auth/JwtTokenService.php†L210-L249】
 
 #### `POST /wp-json/gn/v1/login`
 
