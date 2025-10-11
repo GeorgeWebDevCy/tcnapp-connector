@@ -196,9 +196,22 @@ class PasswordLoginService {
                 if ( $validated ) {
                     $user_id = (int) $validated;
                 } elseif ( class_exists( '\TCN\Platform\Auth\JwtTokenService' ) ) {
-                    $payload = \TCN\Platform\Auth\JwtTokenService::decode_token( $token, true );
-                    if ( ! is_wp_error( $payload ) ) {
-                        $user_id = (int) ( $payload['data']['user']['id'] ?? 0 );
+                    $payload = \TCN\Platform\Auth\JwtTokenService::decode_token( $token );
+                    if ( is_wp_error( $payload ) ) {
+                        return new WP_Error(
+                            'gn_unauth',
+                            __( 'Invalid or expired token.', 'tcnapp-connector' ),
+                            array( 'status' => 401 )
+                        );
+                    }
+
+                    $user_id = (int) ( $payload['data']['user']['id'] ?? 0 );
+                    if ( $user_id <= 0 ) {
+                        return new WP_Error(
+                            'gn_unauth',
+                            __( 'Invalid or expired token.', 'tcnapp-connector' ),
+                            array( 'status' => 401 )
+                        );
                     }
                 }
             }
