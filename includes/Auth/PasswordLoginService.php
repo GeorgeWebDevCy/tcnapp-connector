@@ -124,6 +124,16 @@ class PasswordLoginService {
 
         register_rest_route(
             'gn/v1',
+            '/token/refresh',
+            array(
+                'methods'             => 'POST',
+                'callback'            => array( $this, 'handle_api_token_refresh' ),
+                'permission_callback' => '__return_true',
+            )
+        );
+
+        register_rest_route(
+            'gn/v1',
             '/log',
             array(
                 'methods'             => 'POST',
@@ -146,6 +156,67 @@ class PasswordLoginService {
                 },
                 'permission_callback' => '__return_true',
             )
+        );
+    }
+
+    public function handle_api_token_refresh( WP_REST_Request $request ) {
+        $header = $request->get_header( 'authorization' );
+        $token  = '';
+
+        if ( is_string( $header ) && 0 === stripos( $header, 'Bearer ' ) ) {
+            $token = trim( substr( $header, 7 ) );
+        }
+
+        if ( '' === $token ) {
+            $param = $request->get_param( 'token' );
+            if ( is_string( $param ) ) {
+                $token = trim( $param );
+            }
+        }
+
+        $user_id = 0;
+
+        if ( '' !== $token ) {
+            $transient_key = self::API_TOKEN_PREFIX . md5( $token );
+            $raw_payload   = array();
+
+            if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) {
+                $cached = wp_cache_get( $transient_key, 'transient' );
+                if ( is_array( $cached ) ) {
+                    $raw_payload = $cached;
+                }
+            } else {
+                $cached = get_option( '_transient_' . $transient_key, null );
+                if ( is_array( $cached ) ) {
+                    $raw_payload = $cached;
+                }
+            }
+
+            $user_id = (int) $this->validate_api_token( $token );
+
+            if ( ! $user_id && ! empty( $raw_payload['user_id'] ) ) {
+                $user_id = (int) $raw_payload['user_id'];
+            }
+        }
+
+        if ( $user_id <= 0 ) {
+            $user_id = (int) get_current_user_id();
+        }
+
+        if ( $user_id <= 0 ) {
+            return new WP_Error(
+                'gn_no_session',
+                __( 'No active session is available for refresh.', 'tcnapp-connector' ),
+                array( 'status' => 401 )
+            );
+        }
+
+        $api_token = $this->issue_api_token( $user_id );
+
+        return array(
+            'success'    => true,
+            'api_token'  => $api_token['token'],
+            'expires_in' => $api_token['expires_in'],
         );
     }
 
