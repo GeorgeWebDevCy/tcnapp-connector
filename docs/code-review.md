@@ -14,9 +14,12 @@ The `/gn/v1/forgot-password` route accepts a `return_verification_code` flag. Wh
 ### 3. Failed vendor registrations leave orphaned WordPress users
 During registration the service creates the WordPress user before validating the requested vendor tier. If the tier is invalid, the handler returns an error but never deletes the newly created account, leaving inconsistent state and potential attack surface (e.g. duplicate usernames, spam users). Defer user creation until after tier validation or clean up the user on error.【F:includes/Auth/PasswordLoginService.php†L332-L408】
 
+### 4. Expired JWT refresh tokens can be replayed indefinitely
+`handle_token_refresh()` falls back to decoding any presented JWT with `$allow_expired = true` when the transient lookup fails. That means once an attacker steals an old API token, they can continue refreshing it forever—even after the JWT has expired—because the payload still reveals the user ID and the service never checks the expiration claim. Require the transient-based validation to succeed, or decode tokens without bypassing the expiry check before issuing new API tokens.【F:includes/Auth/PasswordLoginService.php†L162-L220】【F:includes/Auth/JwtTokenService.php†L61-L172】
+
 ## Medium Priority Findings
 
-### 4. Admin assets load third-party resources from a CDN
+### 5. Admin assets load third-party resources from a CDN
 When the activity log screen loads, the plugin enqueues DataTables assets directly from `cdn.datatables.net`. WordPress.org guidelines and many enterprise environments require bundling assets locally to avoid privacy and availability issues. Consider shipping the JS/CSS inside the plugin instead of depending on an external CDN.【F:includes/Admin/Assets.php†L17-L55】
 
 ## Positive Notes
