@@ -34,8 +34,51 @@ class PasswordLoginService {
         add_action( 'rest_api_init', array( $this, 'register_routes' ) );
         add_filter( 'rest_pre_serve_request', array( $this, 'filter_pre_serve_request' ), 15, 4 );
         add_action( 'login_form_gn_token_login', array( $this, 'handle_token_login' ) );
+        add_filter( 'jwt_auth_token_response', array( $this, 'append_api_token_to_jwt_response' ), 10, 3 );
 
         self::register_compatibility_alias();
+    }
+
+    /**
+     * Ensure JWT compatibility responses also expose the long-lived API token.
+     *
+     * @param mixed         $response Response data dispatched by the jwt-auth endpoint.
+     * @param WP_User|mixed $user     Authenticated user object when available.
+     * @param array         $payload  Decoded JWT payload.
+     *
+     * @return mixed
+     */
+    public function append_api_token_to_jwt_response( $response, $user, array $payload ) {
+        if ( ! is_array( $response ) ) {
+            return $response;
+        }
+
+        $user_id = 0;
+
+        if ( $user instanceof WP_User ) {
+            $user_id = (int) $user->ID;
+        } elseif ( isset( $payload['data']['user']['id'] ) ) {
+            $user_id = (int) $payload['data']['user']['id'];
+        }
+
+        if ( $user_id <= 0 ) {
+            return $response;
+        }
+
+        $api_token = $this->issue_api_token( $user_id );
+
+        if ( empty( $api_token['token'] ) ) {
+            return $response;
+        }
+
+        $response['api_token']            = $api_token['token'];
+        $response['api_token_expires_in'] = $api_token['expires_in'];
+
+        if ( ! isset( $response['expires_in'] ) || ! is_numeric( $response['expires_in'] ) ) {
+            $response['expires_in'] = $api_token['expires_in'];
+        }
+
+        return $response;
     }
 
     public static function register_compatibility_alias(): void {
