@@ -127,7 +127,7 @@ class PasswordLoginService {
             '/token/refresh',
             array(
                 'methods'             => 'POST',
-                'callback'            => array( $this, 'handle_api_token_refresh' ),
+                'callback'            => array( $this, 'handle_token_refresh' ),
                 'permission_callback' => '__return_true',
             )
         );
@@ -159,65 +159,70 @@ class PasswordLoginService {
         );
     }
 
-    public function handle_api_token_refresh( WP_REST_Request $request ) {
-        $header = $request->get_header( 'authorization' );
-        $token  = '';
-
-        if ( is_string( $header ) && 0 === stripos( $header, 'Bearer ' ) ) {
-            $token = trim( substr( $header, 7 ) );
-        }
-
-        if ( '' === $token ) {
-            $param = $request->get_param( 'token' );
-            if ( is_string( $param ) ) {
-                $token = trim( $param );
-            }
+    public function handle_token_refresh( WP_REST_Request $request ) {
+        $https = $this->maybe_enforce_https( $request );
+        if ( is_wp_error( $https ) ) {
+            return $https;
         }
 
         $user_id = 0;
 
-        if ( '' !== $token ) {
-            $transient_key = self::API_TOKEN_PREFIX . md5( $token );
-            $raw_payload   = array();
-
-            if ( function_exists( 'wp_using_ext_object_cache' ) && wp_using_ext_object_cache() ) {
-                $cached = wp_cache_get( $transient_key, 'transient' );
-                if ( is_array( $cached ) ) {
-                    $raw_payload = $cached;
-                }
-            } else {
-                $cached = get_option( '_transient_' . $transient_key, null );
-                if ( is_array( $cached ) ) {
-                    $raw_payload = $cached;
-                }
-            }
-
-            $user_id = (int) $this->validate_api_token( $token );
-
-            if ( ! $user_id && ! empty( $raw_payload['user_id'] ) ) {
-                $user_id = (int) $raw_payload['user_id'];
+        if ( $this->token_authenticator ) {
+            $result = $this->token_authenticator->authenticate_request( $request );
+            if ( ! is_wp_error( $result ) && $result > 0 ) {
+                $user_id = (int) $result;
             }
         }
 
         if ( $user_id <= 0 ) {
-            $user_id = (int) get_current_user_id();
+            $header = $request->get_header( 'authorization' );
+            $token  = '';
+
+            if ( is_string( $header ) && 0 === stripos( $header, 'Bearer ' ) ) {
+                $token = trim( substr( $header, 7 ) );
+            } else {
+                $param = $request->get_param( 'token' );
+                if ( ! is_string( $param ) || '' === trim( $param ) ) {
+                    $param = $request->get_param( 'api_token' );
+                }
+
+                if ( is_string( $param ) ) {
+                    $token = trim( $param );
+                }
+            }
+
+            if ( '' !== $token ) {
+                $validated = $this->validate_api_token( $token );
+                if ( $validated ) {
+                    $user_id = (int) $validated;
+                } elseif ( class_exists( '\TCN\Platform\Auth\JwtTokenService' ) ) {
+                    $payload = \TCN\Platform\Auth\JwtTokenService::decode_token( $token, true );
+                    if ( ! is_wp_error( $payload ) ) {
+                        $user_id = (int) ( $payload['data']['user']['id'] ?? 0 );
+                    }
+                }
+            }
         }
 
         if ( $user_id <= 0 ) {
             return new WP_Error(
-                'gn_no_session',
-                __( 'No active session is available for refresh.', 'tcnapp-connector' ),
+                'gn_unauth',
+                __( 'Invalid or expired token.', 'tcnapp-connector' ),
                 array( 'status' => 401 )
             );
         }
 
-        $api_token = $this->issue_api_token( $user_id );
+        $api = $this->issue_api_token( $user_id );
 
         return array(
-            'success'    => true,
-            'api_token'  => $api_token['token'],
-            'expires_in' => $api_token['expires_in'],
+            'token'      => $api['token'],
+            'api_token'  => $api['token'],
+            'expires_in' => $api['expires_in'],
         );
+    }
+
+    public function handle_api_token_refresh( WP_REST_Request $request ) {
+        return $this->handle_token_refresh( $request );
     }
 
     public function handle_login( WP_REST_Request $request ) {
