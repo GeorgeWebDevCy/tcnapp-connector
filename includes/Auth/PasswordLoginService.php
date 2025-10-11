@@ -304,9 +304,14 @@ class PasswordLoginService {
             wp_login_url()
         );
 
-        $api                     = $this->issue_api_token( $user->ID );
-        $response['api_token']    = $api['token'];
-        $response['expires_in']   = $api['expires_in'];
+        $api                   = $this->issue_api_token( $user->ID );
+        $response['api_token'] = $api['token'];
+        $response['expires_in'] = $api['expires_in'];
+
+        // The diagnostics screen expects both the one-click login URL and the long-lived bearer
+        // token. Preserve the generated redirect under the documented `token_login_url` field
+        // while avoiding the legacy `redirect` key.
+        $response['token_login_url'] = $response['redirect'];
         unset( $response['redirect'] );
 
         $woocommerce_credentials = $this->get_woocommerce_credentials();
@@ -772,6 +777,16 @@ class PasswordLoginService {
             if ( isset( $payload['exp'] ) && (int) $payload['exp'] > 0 ) {
                 $expires_at = (int) $payload['exp'];
             }
+        }
+
+        if ( ! is_string( $token_string ) ) {
+            $token_string = '';
+        }
+
+        $token_string = trim( $token_string );
+
+        if ( '' === $token_string ) {
+            $token_string = wp_generate_password( 64, false );
         }
 
         $ttl = max( 1, $expires_at - time() );

@@ -87,7 +87,7 @@ All endpoints live under `wp-json/gn/v1`:
 
 | Route | Method | Description |
 | ----- | ------ | ----------- |
-| `/login` | POST | Authenticate via username/email + password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption. Includes rate limiting and token locking via filters. |
+| `/login` | POST | Authenticate via username/email + password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption and returns both the redirect URL and API bearer token. Includes rate limiting and token locking via filters. |
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |

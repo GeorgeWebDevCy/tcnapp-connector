@@ -56,7 +56,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 * **Request body:**
   * `username` *(string, required)* – WordPress username or email.
   * `password` *(string, required)*.
-* **Success response:** `{ success: true, user: {...}, token, api_token, expires_in, auth? }` where `auth.woocommerce` mirrors the constants when present. The `token` supports the `/wp-login.php?action=gn_token_login` redirect flow.
+* **Success response:** `{ success: true, user: {...}, token, token_login_url, api_token, expires_in, auth? }` where `auth.woocommerce` mirrors the constants when present. The `token` supports the `/wp-login.php?action=gn_token_login` redirect flow and `token_login_url` contains the full one-click login URL returned by the API tester.
   * `user.account_type`, `user.account_status`, and `user.vendor_status` are included so the mobile app can gate vendor access until an administrator approves the account. Pending vendors return `gn_vendor_pending`, rejected vendors return `gn_vendor_rejected`, and suspended vendors surface `gn_vendor_suspended` errors during login attempts.【F:includes/Auth/PasswordLoginService.php†L164-L205】
 * **Failure cases:**
   * Missing credentials → `400 gn_missing_credentials`.
