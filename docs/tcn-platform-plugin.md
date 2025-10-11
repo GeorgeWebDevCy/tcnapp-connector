@@ -51,6 +51,7 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 - Authentication quick hits captured on the checklist keep the mobile app and server aligned:
   - Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly calls itself public.
   - Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username and password.
+  - Refresh expiring tokens with `POST /wp-json/gn/v1/token/refresh`; pass either the previous bearer in the `Authorization` header or a `token` request body parameter.
   - Ensure the authenticated account stays active and is not blocked by membership or capability plugins before issuing tokens.
   - When Cloudflare or another proxy sits in front of the site, verify the `Authorization` header survives to PHP unchanged.
 - Quick “App” and “Plugin/Server” lists make it easy to confirm both sides of the integration before shipping builds to QA or production.
@@ -91,6 +92,7 @@ All endpoints live under `wp-json/gn/v1`:
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
 | `/change-password` | POST | Authenticated password change that requires the current password plus `Authorization: Bearer {api_token}` (or an active session). |
+| `/token/refresh` | POST | Exchange an expired or soon-to-expire bearer token for a new `api_token` using either the `Authorization` header or a `token` field in the body. |
 
 Additional helpers:
 - `GN_Password_Login_API::issue_reset_verification_code( $user_id, $ttl )` for generating short-lived verification codes.

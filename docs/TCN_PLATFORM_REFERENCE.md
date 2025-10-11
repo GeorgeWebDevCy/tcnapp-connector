@@ -34,6 +34,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 | `/reset-password` | POST | Public | Accept a verification code or reset key and set a new password. |
 | `/change-password` | POST | Bearer token or logged-in cookie | Validate the current password and set a new one. Refreshes the auth cookie. |
 | `/me` | GET | Bearer token issued by `/login` | Resolve the user linked to a bearer token without requiring cookies. |
+| `/token/refresh` | POST | Bearer token or logged-in cookie | Exchange an expired bearer token for a fresh one without prompting for a password. |
 | `/log` | POST | Public | Proxy arbitrary client logs into the plugin’s activity log. |
 | `/vendors/tiers` | GET | Public | Retrieve the vendor tier catalogue (Sapphire/Diamond) with discount matrices and benefits. |
 | `/membership/qr` | POST | Bearer token | Issue a short‑lived membership QR token for the current user. Optional `payload` string is echoed back for clients embedding context. |
@@ -107,6 +108,13 @@ The password login service powers the mobile authentication flow, rate-limits br
 * **Headers:** `Authorization: Bearer {api_token}`.
 * **Success response:** `{ user: {...} }` using the same payload as `/login`.
 * **Failure cases:** Missing/invalid bearer header returns `401 gn_unauth`.
+
+#### `POST /wp-json/gn/v1/token/refresh`
+
+* **Purpose:** Mint a new bearer token when the previous one expired but the user still has an active transient or WordPress session.
+* **Headers:** Optional `Authorization: Bearer {api_token}`. Alternatively, pass a `token` field in the JSON body or form payload.
+* **Success response:** `{ success: true, api_token, expires_in }`. The new expiration mirrors the standard login lifetime and can be reused for protected REST calls immediately.
+* **Failure cases:** Missing session context (no valid transient or logged-in user) returns `401 gn_no_session`.
 
 #### `POST /wp-json/gn/v1/log`
 
