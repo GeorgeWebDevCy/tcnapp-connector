@@ -253,12 +253,12 @@ The upstream **JWT Authentication for WP REST API** plugin exposes REST endpoint
 
 #### `POST /wp-json/jwt-auth/v1/token`
 * **Body**: `username`, `password` (required).
-* **Response**: `{ token, user_email, user_nicename, user_display_name, expires_in }`.
+* **Response**: `{ token, user_email, user_nicename, user_display_name, expires_in, api_token, api_token_expires_in }`.
 * **Notes**: Mirrors the behaviour of the legacy plugin including filter hooks such as `jwt_auth_token_before_dispatch`.
 
 #### `POST /wp-json/jwt-auth/v1/token/refresh`
 * **Headers**: `Authorization: Bearer <token>` (or `token` request parameter).
-* **Response**: Same payload as the login endpoint with a newly-issued JWT.
+* **Response**: Same payload as the login endpoint with a newly-issued JWT and API token pair.
 * **Notes**: Accepts expired tokens for refresh as long as the signature remains valid and the user still exists.
 
 #### `POST /wp-json/jwt-auth/v1/token/validate`
