@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.89
+Stable tag: 0.3.90
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -48,7 +48,7 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * Visit **TCN Platform → Deployment Checklists** for preflight checks covering the Password Login API routes.
 * Authentication quick hits called out on the page:
   * Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly states it is public.
-  * Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username/email and password.
+  * Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username, email, and password.
   * Confirm the authenticated account is active and not blocked by membership or capability plugins before testing protected routes.
   * When Cloudflare or other proxies sit in front of the site, verify the `Authorization` header reaches PHP unchanged.
 
@@ -63,7 +63,7 @@ Configure modules under **TCN Platform → Modules**. The Membership & MLM modul
 * REST endpoints under `tcn-mlm/v1/*` expose profiles, genealogy trees, and commissions for the TCNApp dashboards.
 
 == Password Login API Endpoints ==
-* `/wp-json/gn/v1/login` – POST authentication with seven-day token hand-offs plus rate limiting and optional device locking filters.
+* `/wp-json/gn/v1/login` – POST authentication requiring matching username + email credentials with seven-day token hand-offs plus rate limiting and optional device locking filters.
 * `/wp-json/gn/v1/register` – POST registration with validation for username, email, and password strength (`gn_password_api_user_registered` fires on success).
 * `/wp-json/gn/v1/forgot-password` and `/reset-password` – POST flows that mirror WordPress core without leaking account existence.
 * `/wp-json/gn/v1/change-password` – POST authenticated password changes that require the current password and an `Authorization: Bearer` token (or a valid session/X-WP-Nonce).
@@ -101,6 +101,11 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.90 =
+* Require `/wp-json/gn/v1/login` and the JWT compatibility endpoint to receive matching username + email credentials before tokens are issued, preventing email mismatches from authenticating requests.【F:includes/Auth/PasswordLoginService.php†L284-L339】【F:includes/Auth/JwtAuthEndpoints.php†L64-L170】
+* Mint opaque API bearer tokens even when a JWT secret is configured so clients can rely on username/email authentication without decoding JWT payloads; expose `gn_password_api_issue_api_token` for bespoke token generation.【F:includes/Auth/PasswordLoginService.php†L831-L874】
+* Refresh the API tester presets and documentation to capture the username + email requirement and new authentication flow.【F:includes/Admin/ApiTesterPage.php†L396-L454】【F:docs/TCN_PLATFORM_REFERENCE.md†L14-L120】【F:docs/tcn-platform-plugin.md†L52-L109】
 
 = 0.3.89 =
 * Include long-lived `api_token` credentials (and their expiry) in `/wp-json/jwt-auth/v1/token` and `/token/refresh` responses so clients using the compatibility endpoints can authenticate protected REST routes immediately.

@@ -288,12 +288,13 @@ class PasswordLoginService {
         }
 
         $username = sanitize_text_field( $request->get_param( 'username' ) );
+        $email    = sanitize_email( (string) $request->get_param( 'email' ) );
         $password = (string) $request->get_param( 'password' );
-        if ( empty( $username ) || empty( $password ) ) {
-            return new WP_Error( 'gn_missing_credentials', __( 'Username and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+        if ( empty( $username ) || empty( $email ) || empty( $password ) ) {
+            return new WP_Error( 'gn_missing_credentials', __( 'Username, email, and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
         }
 
-        $rate_context = $this->build_rate_context( 'login', $username );
+        $rate_context = $this->build_rate_context( 'login', $username . '|' . $email );
         if ( $this->is_rate_limited( $rate_context ) ) {
             return new WP_Error( 'gn_rate_limited', __( 'Too many attempts. Try again shortly.', 'tcnapp-connector' ), array( 'status' => 429 ) );
         }
@@ -302,7 +303,13 @@ class PasswordLoginService {
         if ( is_wp_error( $user ) ) {
             $this->increment_rate_limit( $rate_context );
 
-            return new WP_Error( 'gn_invalid_credentials', __( 'The provided credentials are incorrect.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+            return new WP_Error( 'gn_invalid_credentials', __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+        }
+
+        if ( ! $this->credentials_match_user( $user, $username, $email ) ) {
+            $this->increment_rate_limit( $rate_context );
+
+            return new WP_Error( 'gn_invalid_credentials', __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ), array( 'status' => 401 ) );
         }
 
         $this->reset_rate_limit( $rate_context );
@@ -806,6 +813,16 @@ class PasswordLoginService {
         delete_transient( $context['key'] );
     }
 
+    protected function credentials_match_user( WP_User $user, string $expected_username, string $expected_email ): bool {
+        $expected_username = trim( $expected_username );
+        $expected_email    = trim( $expected_email );
+
+        $login_matches = '' === $expected_username ? true : 0 === strcasecmp( $user->user_login, $expected_username );
+        $email_matches = '' === $expected_email ? true : 0 === strcasecmp( $user->user_email, $expected_email );
+
+        return $login_matches && $email_matches;
+    }
+
     protected function issue_login_token( int $user_id ): array {
         $lifetime = apply_filters( 'gn_password_api_login_token_lifetime', (int) $this->settings['token_lifetime'], $user_id );
         $lifetime = max( WEEK_IN_SECONDS, $lifetime );
@@ -842,41 +859,16 @@ class PasswordLoginService {
         $lifetime = (int) apply_filters( 'gn_password_api_api_token_lifetime', DAY_IN_SECONDS * 7, $user_id );
         $lifetime = max( HOUR_IN_SECONDS, $lifetime );
 
-        $user = get_user_by( 'id', $user_id );
+        $expires_at  = time() + $lifetime;
+        $token_string = wp_generate_password( 64, false );
 
-        $jwt_token  = null;
-        $expires_at = time() + $lifetime;
+        $token_string = apply_filters( 'gn_password_api_issue_api_token', $token_string, $user_id, $expires_at );
 
-        if ( $user instanceof WP_User ) {
-            $jwt_token = JwtTokenService::generate_token(
-                $user,
-                array(
-                    'expire' => $expires_at,
-                )
-            );
+        if ( ! is_string( $token_string ) ) {
+            $token_string = '';
         }
 
-        $token_string = '';
-
-        if ( $jwt_token instanceof WP_Error ) {
-            $jwt_token = null;
-        }
-
-        if ( is_array( $jwt_token ) ) {
-            if ( isset( $jwt_token['payload'] ) && is_array( $jwt_token['payload'] ) ) {
-                $payload = $jwt_token['payload'];
-
-                if ( isset( $payload['exp'] ) && (int) $payload['exp'] > 0 ) {
-                    $expires_at = (int) $payload['exp'];
-                }
-            }
-
-            if ( isset( $jwt_token['token'] ) && is_string( $jwt_token['token'] ) ) {
-                $token_string = trim( $jwt_token['token'] );
-            }
-        } elseif ( is_string( $jwt_token ) ) {
-            $token_string = trim( $jwt_token );
-        }
+        $token_string = trim( $token_string );
 
         if ( '' === $token_string ) {
             $token_string = wp_generate_password( 64, false );
