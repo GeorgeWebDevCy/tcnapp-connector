@@ -35,7 +35,7 @@ Toggle modules under **TCN Platform → Modules**. The Membership & MLM module s
 ### Password Login API Settings
 - **Allowed CORS Origin** – Exact origin (scheme + host + optional port) allowed to call `gn/v1` endpoints cross-origin. Leave blank to restrict to same-origin requests.
 - **Allow Dev HTTP** – Permits non-HTTPS requests when `WP_DEBUG` is true. Localhost/loopback requests are automatically allowed during development, and the `gn_password_api_allow_dev_http` filter can force other dev hosts through.
-- **JWT Auth Secret** – Define `JWT_AUTH_SECRET_KEY` in `wp-config.php` so login responses contain signed JWT bearer tokens rather than opaque fallbacks when the secret is missing.
+- **JWT Auth Secret** – Define `JWT_AUTH_SECRET_KEY` in `wp-config.php` so the `/jwt-auth/v1` compatibility routes continue issuing signed tokens. Password Login API responses always provide opaque bearer strings.
 
 These settings persist in the `gn_login_api_settings` option. A compatibility shim keeps `GN_Password_Login_API` usable for legacy code.
 
@@ -51,7 +51,7 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 - Each section summarises endpoint verification, HTTPS and CORS settings, bearer token expectations, avatar upload requirements, and cURL recipes you can run directly from the server.
 - Authentication quick hits captured on the checklist keep the mobile app and server aligned:
   - Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly calls itself public.
-  - Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username and password.
+  - Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username, email, and password.
   - Ensure the authenticated account stays active and is not blocked by membership or capability plugins before issuing tokens.
   - When Cloudflare or another proxy sits in front of the site, verify the `Authorization` header survives to PHP unchanged.
 - Quick “App” and “Plugin/Server” lists make it easy to confirm both sides of the integration before shipping builds to QA or production.
@@ -87,7 +87,7 @@ All endpoints live under `wp-json/gn/v1`:
 
 | Route | Method | Description |
 | ----- | ------ | ----------- |
-| `/login` | POST | Authenticate via username/email + password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption. Includes rate limiting and token locking via filters. |
+| `/login` | POST | Authenticate via username, email, and password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption. Includes rate limiting and token locking via filters. |
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
@@ -109,6 +109,11 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.90
+- Require `/wp-json/gn/v1/login` and the `/jwt-auth/v1/token` compatibility route to validate both username and email before issuing tokens, closing gaps where an address mismatch could still authenticate.【F:includes/Auth/PasswordLoginService.php†L284-L339】【F:includes/Auth/JwtAuthEndpoints.php†L64-L170】
+- Issue opaque API bearer tokens irrespective of a configured JWT secret and add the `gn_password_api_issue_api_token` filter so integrators can customise token formats without depending on JWT helpers.【F:includes/Auth/PasswordLoginService.php†L831-L874】
+- Update the admin API tester and reference docs to reflect the username + email requirement for authentication flows.【F:includes/Admin/ApiTesterPage.php†L396-L454】【F:docs/TCN_PLATFORM_REFERENCE.md†L14-L120】【F:docs/tcn-platform-plugin.md†L52-L109】
 
 ### 0.3.72
 - Preserve avatar URL size keys when merging stored values into REST responses so numeric indexes like `24`, `48`, and `96` stay aligned with WordPress core expectations.

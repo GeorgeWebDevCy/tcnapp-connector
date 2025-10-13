@@ -28,7 +28,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 
 | Route | Method | Auth | Purpose |
 | ----- | ------ | ---- | ------- |
-| `/login` | POST | Public | Exchange username/email and password for login + API tokens. Applies per-IP + per-identifier rate limiting. |
+| `/login` | POST | Public | Exchange username, email, and password for login + API tokens. Applies per-IP + per-identifier rate limiting. |
 | `/register` | POST | Public | Create a WordPress account and return the new profile payload. |
 | `/forgot-password` | POST | Public | Trigger a core password-reset email and optionally return a verification code. |
 | `/reset-password` | POST | Public | Accept a verification code or reset key and set a new password. |
@@ -45,17 +45,19 @@ The password login service powers the mobile authentication flow, rate-limits br
 
 #### Shared request & response behaviour
 
-* **Rate limiting:** The login endpoint tracks attempts per `{action}:{identifier}:{IP}` using the configured `rate_limit` and `rate_limit_window` values. Excessive failures return `429 gn_rate_limited` until the TTL expires.【F:includes/Auth/PasswordLoginService.php†L150-L209】
-* **Token lifetime:** `token` (for one-click WordPress login) and `api_token` (for REST bearer auth) both default to seven days and are stored as WordPress transients with matching expiration timestamps.【F:includes/Auth/PasswordLoginService.php†L211-L240】【F:includes/Auth/PasswordLoginService.php†L560-L599】
+* **Rate limiting:** The login endpoint tracks attempts per `{action}:{identifier}:{IP}`—where the identifier concatenates username and email—using the configured `rate_limit` and `rate_limit_window` values. Excessive failures return `429 gn_rate_limited` until the TTL expires.【F:includes/Auth/PasswordLoginService.php†L288-L339】【F:includes/Auth/PasswordLoginService.php†L770-L807】
+* **Token lifetime:** `token` (for one-click WordPress login) and `api_token` (for REST bearer auth) both default to seven days and are stored as WordPress transients with matching expiration timestamps.【F:includes/Auth/PasswordLoginService.php†L357-L410】【F:includes/Auth/PasswordLoginService.php†L809-L874】
+* **Custom API tokens:** Filter `gn_password_api_issue_api_token` to override the generated bearer string before it is cached. Returning an empty string falls back to the default random generator.【F:includes/Auth/PasswordLoginService.php†L831-L874】
 * **User payload:** Responses include `id`, `username`, `email`, `display_name`, `first_name`, `last_name`, `membership_level`, `sponsor_id`, `account_type`, `account_status`, `vendor_status`, optional `vendor_tier`, optional `vendor_rejection_reason`, and optional WooCommerce credentials (consumer key/secret + base64 `authorization`).【F:includes/Auth/PasswordLoginService.php†L472-L510】
 * **Error format:** Failures are returned as `WP_Error` with descriptive messages and HTTP codes (400 for validation, 401/403 for auth, 404 for unknown users, 409 for conflicts, 429 for rate limiting).【F:includes/Auth/PasswordLoginService.php†L146-L392】
-* **JWT secret:** Define `JWT_AUTH_SECRET_KEY` in `wp-config.php` to issue signed JWT bearer tokens. When the key is missing or empty, the login service now trims the generated value and falls back to a 64-character random string so responses always contain a usable `api_token`.【F:includes/Auth/PasswordLoginService.php†L785-L828】【F:includes/Auth/JwtTokenService.php†L210-L249】
+* **JWT secret:** Define `JWT_AUTH_SECRET_KEY` in `wp-config.php` to continue issuing signed JWTs for the `/jwt-auth/v1` compatibility routes. Password Login API responses now mint opaque `api_token` strings regardless of the secret so clients can rely on username + email authentication without JWT dependencies.【F:includes/Auth/JwtAuthEndpoints.php†L64-L170】【F:includes/Auth/PasswordLoginService.php†L831-L874】
 
 #### `POST /wp-json/gn/v1/login`
 
-* **Purpose:** Authenticate using a WordPress username or email address and password.
+* **Purpose:** Authenticate using a WordPress username, matching email address, and password.
 * **Request body:**
-  * `username` *(string, required)* – WordPress username or email.
+  * `username` *(string, required)* – WordPress username.
+  * `email` *(string, required)* – Email address associated with the username.
   * `password` *(string, required)*.
 * **Success response:** `{ success: true, user: {...}, token, token_login_url, api_token, expires_in, auth? }` where `auth.woocommerce` mirrors the constants when present. The `token` supports the `/wp-login.php?action=gn_token_login` redirect flow and `token_login_url` contains the full one-click login URL returned by the API tester.
   * `user.account_type`, `user.account_status`, and `user.vendor_status` are included so the mobile app can gate vendor access until an administrator approves the account. Pending vendors return `gn_vendor_pending`, rejected vendors return `gn_vendor_rejected`, and suspended vendors surface `gn_vendor_suspended` errors during login attempts.【F:includes/Auth/PasswordLoginService.php†L164-L205】

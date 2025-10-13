@@ -405,6 +405,7 @@ class ApiTesterPage {
                 'body'       => wp_json_encode(
                     array(
                         'username' => 'demo@example.com',
+                        'email'    => 'demo@example.com',
                         'password' => 'secret-password',
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
@@ -432,6 +433,7 @@ class ApiTesterPage {
                 'body'        => wp_json_encode(
                     array(
                         'username' => 'demo@example.com',
+                        'email'    => 'demo@example.com',
                         'password' => 'secret-password',
                     ),
                     JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES

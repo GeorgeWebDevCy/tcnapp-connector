@@ -118,7 +118,7 @@ JSON;
                 <div class="tcn-platform-checklist-content">
                     <ul>
                         <li><?php esc_html_e( 'Protected endpoints expect an Authorization: Bearer token unless labelled public.', 'tcnapp-connector' ); ?></li>
-                        <li><?php esc_html_e( 'Retrieve tokens from POST /wp-json/gn/v1/login using a valid WordPress username and password.', 'tcnapp-connector' ); ?></li>
+                        <li><?php esc_html_e( 'Retrieve tokens from POST /wp-json/gn/v1/login using a valid WordPress username, email, and password.', 'tcnapp-connector' ); ?></li>
                         <li><?php esc_html_e( 'Ensure the authenticated user account is active and not blocked by membership or capability plugins.', 'tcnapp-connector' ); ?></li>
                         <li><?php esc_html_e( 'If the site is behind Cloudflare or another proxy, confirm Authorization headers reach PHP unchanged.', 'tcnapp-connector' ); ?></li>
                     </ul>

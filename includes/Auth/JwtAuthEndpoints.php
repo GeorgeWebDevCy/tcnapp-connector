@@ -67,12 +67,13 @@ class JwtAuthEndpoints {
         do_action( 'jwt_auth_before_auth', $request );
 
         $username = (string) $request->get_param( 'username' );
+        $email    = sanitize_email( (string) $request->get_param( 'email' ) );
         $password = (string) $request->get_param( 'password' );
 
-        if ( '' === $username || '' === $password ) {
+        if ( '' === $username || '' === $email || '' === $password ) {
             return new WP_Error(
                 'jwt_auth_missing_credentials',
-                __( 'Username and password are required.', 'tcnapp-connector' ),
+                __( 'Username, email, and password are required.', 'tcnapp-connector' ),
                 array( 'status' => 400 )
             );
         }
@@ -83,9 +84,21 @@ class JwtAuthEndpoints {
 
             return new WP_Error(
                 'jwt_auth_invalid_credentials',
-                __( 'Invalid username or password.', 'tcnapp-connector' ),
+                __( 'Invalid username, email, or password.', 'tcnapp-connector' ),
                 array( 'status' => 403 )
             );
+        }
+
+        if ( ! $this->credentials_match_user( $user, $username, $email ) ) {
+            $error = new WP_Error(
+                'jwt_auth_invalid_credentials',
+                __( 'Invalid username, email, or password.', 'tcnapp-connector' ),
+                array( 'status' => 403 )
+            );
+
+            do_action( 'jwt_auth_failed_auth', $error, $request );
+
+            return $error;
         }
 
         do_action( 'jwt_auth_after_auth', $user, $request );
@@ -185,6 +198,16 @@ class JwtAuthEndpoints {
         }
 
         return $user;
+    }
+
+    protected function credentials_match_user( WP_User $user, string $expected_username, string $expected_email ): bool {
+        $expected_username = trim( $expected_username );
+        $expected_email    = trim( $expected_email );
+
+        $login_matches = '' === $expected_username ? true : 0 === strcasecmp( $user->user_login, $expected_username );
+        $email_matches = '' === $expected_email ? true : 0 === strcasecmp( $user->user_email, $expected_email );
+
+        return $login_matches && $email_matches;
     }
 
     /**
