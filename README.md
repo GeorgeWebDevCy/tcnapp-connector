@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.91
+- Maintenance: Bump the plugin version for the 0.3.91 release.
+
 ### 0.3.90
 - Require `/wp-json/gn/v1/login` and the `/jwt-auth/v1/token` compatibility route to validate both username and email before issuing tokens, closing gaps where an address mismatch could still authenticate.【F:includes/Auth/PasswordLoginService.php†L284-L339】【F:includes/Auth/JwtAuthEndpoints.php†L64-L170】
 - Issue opaque API bearer tokens irrespective of a configured JWT secret and add the `gn_password_api_issue_api_token` filter so integrators can customise token formats without depending on JWT helpers.【F:includes/Auth/PasswordLoginService.php†L831-L874】
