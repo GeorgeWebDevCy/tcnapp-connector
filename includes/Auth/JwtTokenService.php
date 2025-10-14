@@ -1,6 +1,7 @@
 <?php
 namespace TCN\Platform\Auth;
 
+use TCN\Platform\Support\ErrorCodes;
 use WP_Error;
 use WP_User;
 
@@ -69,10 +70,11 @@ class JwtTokenService {
     public static function decode_token( string $token, bool $allow_expired = false ) {
         $parts = explode( '.', $token );
         if ( 3 !== count( $parts ) ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token structure is invalid.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
@@ -80,73 +82,81 @@ class JwtTokenService {
 
         $header_json = self::base64url_decode( $header64 );
         if ( false === $header_json ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token header could not be decoded.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
         $header = json_decode( $header_json, true );
         if ( ! is_array( $header ) ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token header is invalid.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
         $algo = strtoupper( (string) ( $header['alg'] ?? 'HS256' ) );
         if ( 'HS256' !== $algo ) {
-            return new WP_Error(
-                'jwt_auth_unsupported_alg',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'Only the HS256 signing algorithm is supported.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_unsupported_alg' )
             );
         }
 
         $secret = self::get_secret_key();
         if ( empty( $secret ) ) {
-            return new WP_Error(
-                'jwt_auth_bad_config',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'JWT secret key is not configured.', 'tcnapp-connector' ),
-                array( 'status' => 500 )
+                500,
+                array( 'legacy_code' => 'jwt_auth_bad_config' )
             );
         }
 
         $signature = self::base64url_decode( $signature64 );
         if ( false === $signature ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token signature could not be decoded.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
         $expected = hash_hmac( 'sha256', $header64 . '.' . $payload64, $secret, true );
         if ( ! hash_equals( $expected, $signature ) ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token signature is invalid.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
         $payload_json = self::base64url_decode( $payload64 );
         if ( false === $payload_json ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token payload could not be decoded.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
         $payload = json_decode( $payload_json, true );
         if ( ! is_array( $payload ) ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token payload is invalid.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
@@ -154,18 +164,20 @@ class JwtTokenService {
         $leeway = apply_filters( 'jwt_auth_leeway', 0, $payload );
 
         if ( isset( $payload['nbf'] ) && ( $payload['nbf'] - $leeway ) > $now ) {
-            return new WP_Error(
-                'jwt_auth_invalid_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token is not yet valid.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_invalid_token' )
             );
         }
 
         if ( ! $allow_expired && isset( $payload['exp'] ) && ( $now - $leeway ) >= $payload['exp'] ) {
-            return new WP_Error(
-                'jwt_auth_expired_token',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'The token has expired.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'jwt_auth_expired_token' )
             );
         }
 
@@ -182,19 +194,21 @@ class JwtTokenService {
     public static function encode_jwt( array $payload ) {
         $secret = self::get_secret_key();
         if ( empty( $secret ) ) {
-            return new WP_Error(
-                'jwt_auth_bad_config',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'JWT secret key is not configured.', 'tcnapp-connector' ),
-                array( 'status' => 500 )
+                500,
+                array( 'legacy_code' => 'jwt_auth_bad_config' )
             );
         }
 
         $algo = strtoupper( (string) apply_filters( 'jwt_auth_alg', 'HS256', $payload ) );
         if ( 'HS256' !== $algo ) {
-            return new WP_Error(
-                'jwt_auth_unsupported_alg',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'Only the HS256 signing algorithm is supported.', 'tcnapp-connector' ),
-                array( 'status' => 500 )
+                500,
+                array( 'legacy_code' => 'jwt_auth_unsupported_alg' )
             );
         }
 

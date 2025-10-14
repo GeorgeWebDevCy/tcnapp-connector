@@ -193,9 +193,11 @@ class TokenAuthenticator {
 
         if ( null === $token ) {
             if ( ! $this->should_log_non_bearer_header( $header ) ) {
-                return $this->create_auth_error(
-                    'tcn_rest_invalid_token',
-                    __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                    __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
+                    403,
+                    array( 'legacy_code' => 'tcn_rest_invalid_token' )
                 );
             }
 
@@ -204,9 +206,11 @@ class TokenAuthenticator {
                 array( 'raw_header_preview' => $this->mask_string( $header ) )
             );
 
-            return $this->create_auth_error(
-                'tcn_rest_invalid_token',
-                __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
+                403,
+                array( 'legacy_code' => 'tcn_rest_invalid_token' )
             );
         }
 
@@ -299,9 +303,11 @@ class TokenAuthenticator {
         if ( ! class_exists( PasswordLoginService::class ) ) {
             $this->log_debug( 'authenticate_request PasswordLoginService class missing' );
 
-            return $this->create_auth_error(
-                'tcn_rest_invalid_token',
-                __( 'The provided authentication token is invalid.', 'tcnapp-connector' )
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                __( 'The provided authentication token is invalid.', 'tcnapp-connector' ),
+                403,
+                array( 'legacy_code' => 'tcn_rest_invalid_token' )
             );
         }
 
@@ -317,9 +323,11 @@ class TokenAuthenticator {
             $payload    = $this->get_api_token_payload( $token_hash );
 
             if ( false === $payload ) {
-                return $this->create_auth_error(
-                    'tcn_rest_token_expired',
-                    __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' )
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                    __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' ),
+                    401,
+                    array( 'legacy_code' => 'tcn_rest_token_expired' )
                 );
             }
         }
@@ -336,9 +344,11 @@ class TokenAuthenticator {
                 )
             );
 
-            return $this->create_auth_error(
-                'tcn_rest_token_expired',
-                __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' )
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                __( 'The authentication token has expired or is invalid.', 'tcnapp-connector' ),
+                401,
+                array( 'legacy_code' => 'tcn_rest_token_expired' )
             );
         }
 

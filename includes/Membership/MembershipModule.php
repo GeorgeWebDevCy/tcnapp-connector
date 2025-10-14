@@ -5,6 +5,7 @@ use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Support\Accounts;
 use TCN\Platform\Support\Options;
 use TCN\Platform\Support\Roles;
+use TCN\Platform\Support\ErrorCodes;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Server;
@@ -369,10 +370,11 @@ class MembershipModule {
             return true;
         }
 
-        return new WP_Error(
-            'tcn_rest_unauthorized',
+        return ErrorCodes::to_wp_error(
+            ErrorCodes::SESSION_TOKEN_UNAVAILABLE,
             __( 'Authentication is required to access this resource.', 'tcnapp-connector' ),
-            array( 'status' => rest_authorization_required_code() )
+            rest_authorization_required_code(),
+            array( 'legacy_code' => 'tcn_rest_unauthorized' )
         );
     }
 
@@ -439,18 +441,33 @@ class MembershipModule {
         $plan    = sanitize_key( $request->get_param( 'plan' ) );
         $user_id = get_current_user_id();
         if ( '' === $plan ) {
-            return new WP_Error( 'invalid_plan', __( 'A membership plan is required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_PAYMENT_SESSION_FAILED,
+                __( 'A membership plan is required.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'invalid_plan' )
+            );
         }
 
         $levels = Options::get_levels();
         if ( empty( $levels[ $plan ] ) || ! is_array( $levels[ $plan ] ) ) {
-            return new WP_Error( 'unknown_plan', __( 'The requested membership plan could not be found.', 'tcnapp-connector' ), array( 'status' => 404 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_PAYMENT_SESSION_FAILED,
+                __( 'The requested membership plan could not be found.', 'tcnapp-connector' ),
+                404,
+                array( 'legacy_code' => 'unknown_plan' )
+            );
         }
 
         $general    = Options::get_general_settings();
         $secret_key = isset( $general['stripe_secret_key'] ) ? trim( $general['stripe_secret_key'] ) : '';
         if ( '' === $secret_key ) {
-            return new WP_Error( 'stripe_not_configured', __( 'Stripe API keys are not configured.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_PAYMENT_SESSION_FAILED,
+                __( 'Stripe API keys are not configured.', 'tcnapp-connector' ),
+                500,
+                array( 'legacy_code' => 'stripe_not_configured' )
+            );
         }
 
         $amount   = isset( $levels[ $plan ]['fee'] ) ? (float) $levels[ $plan ]['fee'] : 0.0;
@@ -487,12 +504,22 @@ class MembershipModule {
     public function rest_confirm_membership_upgrade( WP_REST_Request $request ) {
         $plan = sanitize_key( $request->get_param( 'plan' ) );
         if ( '' === $plan ) {
-            return new WP_Error( 'invalid_plan', __( 'A membership plan is required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                __( 'A membership plan is required.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'invalid_plan' )
+            );
         }
 
         $levels = Options::get_levels();
         if ( empty( $levels[ $plan ] ) || ! is_array( $levels[ $plan ] ) ) {
-            return new WP_Error( 'unknown_plan', __( 'The requested membership plan could not be found.', 'tcnapp-connector' ), array( 'status' => 404 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                __( 'The requested membership plan could not be found.', 'tcnapp-connector' ),
+                404,
+                array( 'legacy_code' => 'unknown_plan' )
+            );
         }
 
         $general     = Options::get_general_settings();
@@ -503,16 +530,31 @@ class MembershipModule {
         $user_id     = get_current_user_id();
 
         if ( ! $user_id ) {
-            return new WP_Error( 'rest_forbidden', __( 'Authentication required.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::SESSION_TOKEN_UNAVAILABLE,
+                __( 'Authentication required.', 'tcnapp-connector' ),
+                401,
+                array( 'legacy_code' => 'rest_forbidden' )
+            );
         }
 
         if ( $expected > 0 && '' === $secret_key ) {
-            return new WP_Error( 'stripe_not_configured', __( 'Stripe API keys are not configured.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                __( 'Stripe API keys are not configured.', 'tcnapp-connector' ),
+                500,
+                array( 'legacy_code' => 'stripe_not_configured' )
+            );
         }
 
         if ( $expected > 0 ) {
             if ( '' === $intent_id ) {
-                return new WP_Error( 'missing_intent', __( 'A Stripe payment intent is required for this upgrade.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                    __( 'A Stripe payment intent is required for this upgrade.', 'tcnapp-connector' ),
+                    400,
+                    array( 'legacy_code' => 'missing_intent' )
+                );
             }
 
             $intent = $this->stripe_request( 'GET', 'payment_intents/' . rawurlencode( $intent_id ), array(), $secret_key );
@@ -522,7 +564,12 @@ class MembershipModule {
 
             $status = isset( $intent['status'] ) ? $intent['status'] : '';
             if ( ! in_array( $status, array( 'succeeded', 'processing', 'requires_capture' ), true ) ) {
-                return new WP_Error( 'intent_incomplete', __( 'The payment intent has not completed successfully.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                    __( 'The payment intent has not completed successfully.', 'tcnapp-connector' ),
+                    409,
+                    array( 'legacy_code' => 'intent_incomplete' )
+                );
             }
 
             $amount_received = isset( $intent['amount_received'] ) ? (int) $intent['amount_received'] : null;
@@ -532,15 +579,30 @@ class MembershipModule {
 
             $expected_minor = (int) round( $expected * 100 );
             if ( $expected_minor > 0 && $amount_received < $expected_minor ) {
-                return new WP_Error( 'intent_amount_mismatch', __( 'The payment amount did not match the membership fee.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                    __( 'The payment amount did not match the membership fee.', 'tcnapp-connector' ),
+                    409,
+                    array( 'legacy_code' => 'intent_amount_mismatch' )
+                );
             }
 
             if ( ! empty( $intent['currency'] ) && sanitize_key( $intent['currency'] ) !== sanitize_key( $currency ) ) {
-                return new WP_Error( 'intent_currency_mismatch', __( 'The payment currency did not match the site configuration.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                    __( 'The payment currency did not match the site configuration.', 'tcnapp-connector' ),
+                    409,
+                    array( 'legacy_code' => 'intent_currency_mismatch' )
+                );
             }
 
             if ( ! empty( $intent['metadata']['plan'] ) && sanitize_key( $intent['metadata']['plan'] ) !== $plan ) {
-                return new WP_Error( 'intent_plan_mismatch', __( 'The payment intent does not belong to this membership plan.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
+                    __( 'The payment intent does not belong to this membership plan.', 'tcnapp-connector' ),
+                    409,
+                    array( 'legacy_code' => 'intent_plan_mismatch' )
+                );
             }
 
             $metadata_user_id = null;
@@ -554,10 +616,11 @@ class MembershipModule {
             }
 
             if ( ! $metadata_user_id || $metadata_user_id !== $user_id ) {
-                return new WP_Error(
-                    'rest_forbidden',
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::MEMBERSHIP_CONFIRM_FAILED,
                     __( 'You are not allowed to confirm this payment.', 'tcnapp-connector' ),
-                    array( 'status' => rest_authorization_required_code() )
+                    rest_authorization_required_code(),
+                    array( 'legacy_code' => 'rest_forbidden' )
                 );
             }
         }
@@ -674,7 +737,12 @@ class MembershipModule {
 
         $response = wp_remote_request( $url, $args );
         if ( is_wp_error( $response ) ) {
-            return new WP_Error( 'stripe_request_failed', __( 'Unable to contact Stripe.', 'tcnapp-connector' ), array( 'status' => 502 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_CHECKOUT_FAILED,
+                __( 'Unable to contact Stripe.', 'tcnapp-connector' ),
+                502,
+                array( 'legacy_code' => 'stripe_request_failed' )
+            );
         }
 
         $code = (int) wp_remote_retrieve_response_code( $response );
@@ -682,11 +750,21 @@ class MembershipModule {
 
         if ( $code < 200 || $code >= 300 ) {
             $message = isset( $data['error']['message'] ) ? $data['error']['message'] : __( 'Stripe rejected the request.', 'tcnapp-connector' );
-            return new WP_Error( 'stripe_error', $message, array( 'status' => $code ?: 500 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_CHECKOUT_FAILED,
+                $message,
+                $code ?: 500,
+                array( 'legacy_code' => 'stripe_error' )
+            );
         }
 
         if ( ! is_array( $data ) ) {
-            return new WP_Error( 'stripe_error', __( 'Unexpected response from Stripe.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::MEMBERSHIP_CHECKOUT_FAILED,
+                __( 'Unexpected response from Stripe.', 'tcnapp-connector' ),
+                500,
+                array( 'legacy_code' => 'stripe_error' )
+            );
         }
 
         return $data;

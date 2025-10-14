@@ -3,6 +3,7 @@ namespace TCN\Platform\Auth;
 
 use TCN\Platform\Auth\TokenAuthenticator;
 use TCN\Platform\Support\Accounts;
+use TCN\Platform\Support\ErrorCodes;
 use TCN\Platform\Support\Options;
 use WP_Error;
 use WP_REST_Request;
@@ -146,13 +147,23 @@ class PasswordLoginService {
                 'callback'            => function( WP_REST_Request $req ) {
                     $hdr = $req->get_header( 'authorization' );
                     if ( ! $hdr || 0 !== stripos( $hdr, 'Bearer ' ) ) {
-                        return new WP_Error( 'gn_unauth', 'Missing bearer', array( 'status' => 401 ) );
+                        return ErrorCodes::to_wp_error(
+                            ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                            'Missing bearer',
+                            401,
+                            array( 'legacy_code' => 'gn_unauth' )
+                        );
                     }
 
                     $token   = trim( substr( $hdr, 7 ) );
                     $user_id = $this->validate_api_token( $token );
                     if ( ! $user_id ) {
-                        return new WP_Error( 'gn_unauth', 'Invalid token', array( 'status' => 401 ) );
+                        return ErrorCodes::to_wp_error(
+                            ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+                            'Invalid token',
+                            401,
+                            array( 'legacy_code' => 'gn_unauth' )
+                        );
                     }
 
                     $user = get_user_by( 'ID', $user_id );
@@ -241,19 +252,21 @@ class PasswordLoginService {
                 } elseif ( class_exists( '\TCN\Platform\Auth\JwtTokenService' ) ) {
                     $payload = \TCN\Platform\Auth\JwtTokenService::decode_token( $token );
                     if ( is_wp_error( $payload ) ) {
-                        return new WP_Error(
-                            'gn_unauth',
+                        return ErrorCodes::to_wp_error(
+                            ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                             __( 'Invalid or expired token.', 'tcnapp-connector' ),
-                            array( 'status' => 401 )
+                            401,
+                            array( 'legacy_code' => 'gn_unauth' )
                         );
                     }
 
                     $user_id = (int) ( $payload['data']['user']['id'] ?? 0 );
                     if ( $user_id <= 0 ) {
-                        return new WP_Error(
-                            'gn_unauth',
+                        return ErrorCodes::to_wp_error(
+                            ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                             __( 'Invalid or expired token.', 'tcnapp-connector' ),
-                            array( 'status' => 401 )
+                            401,
+                            array( 'legacy_code' => 'gn_unauth' )
                         );
                     }
                 }
@@ -261,10 +274,11 @@ class PasswordLoginService {
         }
 
         if ( $user_id <= 0 ) {
-            return new WP_Error(
-                'gn_unauth',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
                 __( 'Invalid or expired token.', 'tcnapp-connector' ),
-                array( 'status' => 401 )
+                401,
+                array( 'legacy_code' => 'gn_unauth' )
             );
         }
 
@@ -291,25 +305,45 @@ class PasswordLoginService {
         $email    = sanitize_email( (string) $request->get_param( 'email' ) );
         $password = (string) $request->get_param( 'password' );
         if ( empty( $username ) || empty( $email ) || empty( $password ) ) {
-            return new WP_Error( 'gn_missing_credentials', __( 'Username, email, and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_LOGIN_MISSING_CREDENTIALS,
+                __( 'Username, email, and password are required.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'gn_missing_credentials' )
+            );
         }
 
         $rate_context = $this->build_rate_context( 'login', $username . '|' . $email );
         if ( $this->is_rate_limited( $rate_context ) ) {
-            return new WP_Error( 'gn_rate_limited', __( 'Too many attempts. Try again shortly.', 'tcnapp-connector' ), array( 'status' => 429 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_LOGIN_RATE_LIMITED,
+                __( 'Too many attempts. Try again shortly.', 'tcnapp-connector' ),
+                429,
+                array( 'legacy_code' => 'gn_rate_limited' )
+            );
         }
 
         $user = wp_authenticate( $username, $password );
         if ( is_wp_error( $user ) ) {
             $this->increment_rate_limit( $rate_context );
 
-            return new WP_Error( 'gn_invalid_credentials', __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_WORDPRESS_CREDENTIALS,
+                __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ),
+                401,
+                array( 'legacy_code' => 'gn_invalid_credentials' )
+            );
         }
 
         if ( ! $this->credentials_match_user( $user, $username, $email ) ) {
             $this->increment_rate_limit( $rate_context );
 
-            return new WP_Error( 'gn_invalid_credentials', __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_WORDPRESS_CREDENTIALS,
+                __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ),
+                401,
+                array( 'legacy_code' => 'gn_invalid_credentials' )
+            );
         }
 
         $this->reset_rate_limit( $rate_context );
@@ -318,19 +352,21 @@ class PasswordLoginService {
         $snapshot = Accounts::get_account_snapshot( $user->ID );
 
         if ( Accounts::STATUS_SUSPENDED === $snapshot['account_status'] ) {
-            return new WP_Error(
-                'gn_account_suspended',
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_ACCOUNT_SUSPENDED,
                 __( 'Your account is suspended. Contact support for assistance.', 'tcnapp-connector' ),
-                array( 'status' => 403 )
+                403,
+                array( 'legacy_code' => 'gn_account_suspended' )
             );
         }
 
         if ( Accounts::TYPE_VENDOR === $snapshot['account_type'] ) {
             if ( Accounts::STATUS_PENDING === $snapshot['vendor_status'] ) {
-                return new WP_Error(
-                    'gn_vendor_pending',
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_VENDOR_PENDING,
                     __( 'Your vendor account is pending approval.', 'tcnapp-connector' ),
-                    array( 'status' => 403 )
+                    403,
+                    array( 'legacy_code' => 'gn_vendor_pending' )
                 );
             }
 
@@ -340,18 +376,20 @@ class PasswordLoginService {
                     $data['reason'] = $snapshot['vendor_rejection_reason'];
                 }
 
-                return new WP_Error(
-                    'gn_vendor_rejected',
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_VENDOR_REJECTED,
                     __( 'Your vendor account has been rejected. Contact support for assistance.', 'tcnapp-connector' ),
-                    $data
+                    403,
+                    array_merge( $data, array( 'legacy_code' => 'gn_vendor_rejected' ) )
                 );
             }
 
             if ( Accounts::STATUS_SUSPENDED === $snapshot['vendor_status'] ) {
-                return new WP_Error(
-                    'gn_vendor_suspended',
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_VENDOR_SUSPENDED,
                     __( 'Your vendor account is suspended. Contact support for assistance.', 'tcnapp-connector' ),
-                    array( 'status' => 403 )
+                    403,
+                    array( 'legacy_code' => 'gn_vendor_suspended' )
                 );
             }
         }
@@ -407,15 +445,30 @@ class PasswordLoginService {
         $vendor_tier  = sanitize_key( (string) $request->get_param( 'vendor_tier' ) );
 
         if ( empty( $username ) || empty( $email ) || empty( $password ) ) {
-            return new WP_Error( 'gn_missing_fields', __( 'Username, email, and password are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_REGISTER_ACCOUNT_FAILED,
+                __( 'Username, email, and password are required.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'gn_missing_fields' )
+            );
         }
 
         if ( username_exists( $username ) ) {
-            return new WP_Error( 'gn_username_exists', __( 'This username is already in use.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_REGISTER_ACCOUNT_FAILED,
+                __( 'This username is already in use.', 'tcnapp-connector' ),
+                409,
+                array( 'legacy_code' => 'gn_username_exists' )
+            );
         }
 
         if ( email_exists( $email ) ) {
-            return new WP_Error( 'gn_email_exists', __( 'This email address is already registered.', 'tcnapp-connector' ), array( 'status' => 409 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_REGISTER_ACCOUNT_FAILED,
+                __( 'This email address is already registered.', 'tcnapp-connector' ),
+                409,
+                array( 'legacy_code' => 'gn_email_exists' )
+            );
         }
 
         $suppress_new_user_notification = static function( $send ) {
@@ -430,7 +483,12 @@ class PasswordLoginService {
         remove_filter( 'wp_send_new_user_notification_to_admin', $suppress_new_user_notification );
         remove_filter( 'wp_send_new_user_notification_to_user', $suppress_new_user_notification );
         if ( is_wp_error( $user_id ) ) {
-            return new WP_Error( 'gn_registration_failed', __( 'Unable to create the user at this time.', 'tcnapp-connector' ), array( 'status' => 500 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_REGISTER_ACCOUNT_FAILED,
+                __( 'Unable to create the user at this time.', 'tcnapp-connector' ),
+                500,
+                array( 'legacy_code' => 'gn_registration_failed' )
+            );
         }
 
         wp_update_user(
@@ -450,7 +508,12 @@ class PasswordLoginService {
                 if ( isset( $tiers[ $vendor_tier ] ) ) {
                     update_user_meta( $user_id, '_tcn_vendor_tier', $vendor_tier );
                 } else {
-                    return new WP_Error( 'gn_invalid_vendor_tier', __( 'The specified vendor tier is not valid.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+                    return ErrorCodes::to_wp_error(
+                        ErrorCodes::REGISTER_VENDOR_TIER_FETCH_FAILED,
+                        __( 'The specified vendor tier is not valid.', 'tcnapp-connector' ),
+                        400,
+                        array( 'legacy_code' => 'gn_invalid_vendor_tier' )
+                    );
                 }
             } else {
                 // Default to sapphire when omitted
@@ -506,7 +569,12 @@ class PasswordLoginService {
         $key      = sanitize_text_field( (string) $request->get_param( 'key' ) );
 
         if ( empty( $password ) ) {
-            return new WP_Error( 'gn_missing_password', __( 'A new password is required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_PASSWORD_RESET_EMAIL_FAILED,
+                __( 'A new password is required.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'gn_missing_password' )
+            );
         }
 
         $user = null;
@@ -514,21 +582,41 @@ class PasswordLoginService {
         if ( ! empty( $code ) ) {
             $user = $this->get_user_from_login( $login );
             if ( ! $user || ! $this->validate_reset_code( $user->ID, $code ) ) {
-                return new WP_Error( 'gn_invalid_code', __( 'The verification code is invalid or expired.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_RESET_PASSWORD_FAILED,
+                    __( 'The verification code is invalid or expired.', 'tcnapp-connector' ),
+                    400,
+                    array( 'legacy_code' => 'gn_invalid_code' )
+                );
             }
         } elseif ( ! empty( $key ) ) {
             $checked = check_password_reset_key( $key, $login );
             if ( is_wp_error( $checked ) ) {
-                return new WP_Error( 'gn_invalid_reset_key', __( 'The password reset link is invalid or expired.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_RESET_PASSWORD_FAILED,
+                    __( 'The password reset link is invalid or expired.', 'tcnapp-connector' ),
+                    400,
+                    array( 'legacy_code' => 'gn_invalid_reset_key' )
+                );
             }
 
             $user = $checked;
         } else {
-            return new WP_Error( 'gn_missing_reset_token', __( 'Provide a verification code or reset key.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_RESET_PASSWORD_FAILED,
+                __( 'Provide a verification code or reset key.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'gn_missing_reset_token' )
+            );
         }
 
         if ( ! $user ) {
-            return new WP_Error( 'gn_user_not_found', __( 'Unable to locate the requested account.', 'tcnapp-connector' ), array( 'status' => 404 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_RESET_PASSWORD_FAILED,
+                __( 'Unable to locate the requested account.', 'tcnapp-connector' ),
+                404,
+                array( 'legacy_code' => 'gn_user_not_found' )
+            );
         }
 
         wp_set_password( $password, $user->ID );
@@ -561,18 +649,33 @@ class PasswordLoginService {
         }
 
         if ( ! $user || ! $user->ID ) {
-            return new WP_Error( 'gn_not_authenticated', __( 'Authentication required.', 'tcnapp-connector' ), array( 'status' => 401 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_WORDPRESS_CREDENTIALS,
+                __( 'Authentication required.', 'tcnapp-connector' ),
+                401,
+                array( 'legacy_code' => 'gn_not_authenticated' )
+            );
         }
 
         $current = (string) $request->get_param( 'current_password' );
         $new     = (string) $request->get_param( 'password' );
 
         if ( empty( $current ) || empty( $new ) ) {
-            return new WP_Error( 'gn_missing_password', __( 'Current and new passwords are required.', 'tcnapp-connector' ), array( 'status' => 400 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_CHANGE_PASSWORD_FAILED,
+                __( 'Current and new passwords are required.', 'tcnapp-connector' ),
+                400,
+                array( 'legacy_code' => 'gn_missing_password' )
+            );
         }
 
         if ( ! wp_check_password( $current, $user->user_pass, $user->ID ) ) {
-            return new WP_Error( 'gn_invalid_current_password', __( 'The current password is incorrect.', 'tcnapp-connector' ), array( 'status' => 403 ) );
+            return ErrorCodes::to_wp_error(
+                ErrorCodes::AUTH_CHANGE_PASSWORD_FAILED,
+                __( 'The current password is incorrect.', 'tcnapp-connector' ),
+                403,
+                array( 'legacy_code' => 'gn_invalid_current_password' )
+            );
         }
 
         wp_set_password( $new, $user->ID );
@@ -594,10 +697,11 @@ class PasswordLoginService {
             return true;
         }
 
-        return new WP_Error(
-            'gn_not_authenticated',
+        return ErrorCodes::to_wp_error(
+            ErrorCodes::AUTH_WORDPRESS_CREDENTIALS,
             __( 'Authentication required.', 'tcnapp-connector' ),
-            array( 'status' => rest_authorization_required_code() )
+            rest_authorization_required_code(),
+            array( 'legacy_code' => 'gn_not_authenticated' )
         );
     }
 
@@ -776,7 +880,12 @@ class PasswordLoginService {
             return true;
         }
 
-        return new WP_Error( 'gn_https_required', __( 'HTTPS is required to access this endpoint.', 'tcnapp-connector' ), array( 'status' => 403 ) );
+        return ErrorCodes::to_wp_error(
+            ErrorCodes::AUTH_PASSWORD_LOGIN_FAILED,
+            __( 'HTTPS is required to access this endpoint.', 'tcnapp-connector' ),
+            403,
+            array( 'legacy_code' => 'gn_https_required' )
+        );
     }
 
     protected function build_rate_context( string $action, string $identifier ): array {
