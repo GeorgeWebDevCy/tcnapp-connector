@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.92
+- Ship the `TCN\\Platform\\Support\\ErrorCodes` helper with the plugin bundle so REST login flows return structured errors instead of fatal "class not found" responses during authentication failures.【F:includes/Support/ErrorCodes.php†L1-L48】【F:includes/Auth/PasswordLoginService.php†L6-L884】
+
 ### 0.3.91
 - Maintenance: Bump the plugin version for the 0.3.91 release.
 
