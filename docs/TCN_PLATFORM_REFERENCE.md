@@ -28,7 +28,7 @@ The password login service powers the mobile authentication flow, rate-limits br
 
 | Route | Method | Auth | Purpose |
 | ----- | ------ | ---- | ------- |
-| `/login` | POST | Public | Exchange username, email, and password for login + API tokens. Applies per-IP + per-identifier rate limiting. |
+| `/login` | POST | Public | Exchange a username or email address plus password for login + API tokens. Applies per-IP + per-identifier rate limiting. |
 | `/register` | POST | Public | Create a WordPress account and return the new profile payload. |
 | `/forgot-password` | POST | Public | Trigger a core password-reset email and optionally return a verification code. |
 | `/reset-password` | POST | Public | Accept a verification code or reset key and set a new password. |
@@ -54,10 +54,10 @@ The password login service powers the mobile authentication flow, rate-limits br
 
 #### `POST /wp-json/gn/v1/login`
 
-* **Purpose:** Authenticate using a WordPress username, matching email address, and password.
+* **Purpose:** Authenticate using a WordPress username or email address plus password. Supplying both fields enforces a match against the account record.
 * **Request body:**
-  * `username` *(string, required)* – WordPress username.
-  * `email` *(string, required)* – Email address associated with the username.
+  * `username` *(string, optional)* – WordPress username. Required when `email` is omitted.
+  * `email` *(string, optional)* – Email address associated with the username. Required when `username` is omitted.
   * `password` *(string, required)*.
 * **Success response:** `{ success: true, user: {...}, token, token_login_url, api_token, expires_in, auth? }` where `auth.woocommerce` mirrors the constants when present. The `token` supports the `/wp-login.php?action=gn_token_login` redirect flow and `token_login_url` contains the full one-click login URL returned by the API tester.
   * `user.account_type`, `user.account_status`, and `user.vendor_status` are included so the mobile app can gate vendor access until an administrator approves the account. Pending vendors return `gn_vendor_pending`, rejected vendors return `gn_vendor_rejected`, and suspended vendors surface `gn_vendor_suspended` errors during login attempts.【F:includes/Auth/PasswordLoginService.php†L164-L205】

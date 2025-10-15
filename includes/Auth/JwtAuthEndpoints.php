@@ -70,15 +70,17 @@ class JwtAuthEndpoints {
         $email    = sanitize_email( (string) $request->get_param( 'email' ) );
         $password = (string) $request->get_param( 'password' );
 
-        if ( '' === $username || '' === $email || '' === $password ) {
+        if ( '' === $password || ( '' === $username && '' === $email ) ) {
             return new WP_Error(
                 'jwt_auth_missing_credentials',
-                __( 'Username, email, and password are required.', 'tcnapp-connector' ),
+                __( 'A username or email address and password are required.', 'tcnapp-connector' ),
                 array( 'status' => 400 )
             );
         }
 
-        $user = wp_authenticate( $username, $password );
+        $login_identifier = '' !== $username ? $username : $email;
+
+        $user = wp_authenticate( $login_identifier, $password );
         if ( is_wp_error( $user ) ) {
             do_action( 'jwt_auth_failed_auth', $user, $request );
 

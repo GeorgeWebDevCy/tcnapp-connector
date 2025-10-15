@@ -304,14 +304,16 @@ class PasswordLoginService {
         $username = sanitize_text_field( $request->get_param( 'username' ) );
         $email    = sanitize_email( (string) $request->get_param( 'email' ) );
         $password = (string) $request->get_param( 'password' );
-        if ( empty( $username ) || empty( $email ) || empty( $password ) ) {
+        if ( empty( $password ) || ( empty( $username ) && empty( $email ) ) ) {
             return ErrorCodes::to_wp_error(
                 ErrorCodes::AUTH_LOGIN_MISSING_CREDENTIALS,
-                __( 'Username, email, and password are required.', 'tcnapp-connector' ),
+                __( 'A username or email address and password are required.', 'tcnapp-connector' ),
                 400,
                 array( 'legacy_code' => 'gn_missing_credentials' )
             );
         }
+
+        $login_identifier = ! empty( $username ) ? $username : $email;
 
         $rate_context = $this->build_rate_context( 'login', $username . '|' . $email );
         if ( $this->is_rate_limited( $rate_context ) ) {
@@ -323,7 +325,7 @@ class PasswordLoginService {
             );
         }
 
-        $user = wp_authenticate( $username, $password );
+        $user = wp_authenticate( $login_identifier, $password );
         if ( is_wp_error( $user ) ) {
             $this->increment_rate_limit( $rate_context );
 
