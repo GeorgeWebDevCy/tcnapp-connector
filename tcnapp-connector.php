@@ -3,7 +3,7 @@
  * Plugin Name:       TCN Platform
  * Plugin URI:        https://www.georgenicolaou.me/plugins/tcn-platform
  * Description:       Unified membership, MLM, and password-login API services for WooCommerce-powered TCN deployments.
- * Version:           0.3.96
+ * Version:           0.3.97
  * Author:            George Nicolaou
  * Author URI:        https://www.georgenicolaou.me/
  * License:           GPL-2.0+
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 // The current plugin version is surfaced in multiple places (plugin header, constant, updater).
 // Keeping a single source of truth via this constant makes it trivial to reference and compare
 // versions throughout the codebase—for example when performing migrations.
-define( 'TCN_PLATFORM_VERSION', '0.3.96' );
+define( 'TCN_PLATFORM_VERSION', '0.3.97' );
 // The absolute path to this file is cached to avoid repeated calls to plugin_basename() and
 // to ensure other classes (e.g. the autoloader) can reliably resolve relative paths.
 define( 'TCN_PLATFORM_PLUGIN_FILE', __FILE__ );
