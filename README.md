@@ -51,7 +51,7 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 - Each section summarises endpoint verification, HTTPS and CORS settings, bearer token expectations, avatar upload requirements, and cURL recipes you can run directly from the server.
 - Authentication quick hits captured on the checklist keep the mobile app and server aligned:
   - Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly calls itself public.
-  - Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username, email, and password.
+- Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username or email address and password.
   - Ensure the authenticated account stays active and is not blocked by membership or capability plugins before issuing tokens.
   - When Cloudflare or another proxy sits in front of the site, verify the `Authorization` header survives to PHP unchanged.
 - Quick “App” and “Plugin/Server” lists make it easy to confirm both sides of the integration before shipping builds to QA or production.
@@ -87,7 +87,7 @@ All endpoints live under `wp-json/gn/v1`:
 
 | Route | Method | Description |
 | ----- | ------ | ----------- |
-| `/login` | POST | Authenticate via username, email, and password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption. Includes rate limiting and token locking via filters. |
+| `/login` | POST | Authenticate via username or email plus password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption. Includes rate limiting and token locking via filters. |
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
@@ -109,6 +109,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 - Namespaced PHP classes live under `includes/` and autoload via `includes/Autoloader.php`.
 
 ## 📝 Release Notes
+
+### 0.3.93
+- Allow `/gn/v1/login` and `/jwt-auth/v1/token` to accept either a username or email alongside the password so mobile clients can authenticate with whichever credential they supply while keeping rate limiting and credential validation intact.【F:includes/Auth/PasswordLoginService.php†L318-L348】【F:includes/Auth/JwtAuthEndpoints.php†L64-L110】
 
 ### 0.3.92
 - Ship the `TCN\\Platform\\Support\\ErrorCodes` helper with the plugin bundle so REST login flows return structured errors instead of fatal "class not found" responses during authentication failures.【F:includes/Support/ErrorCodes.php†L1-L48】【F:includes/Auth/PasswordLoginService.php†L6-L884】

@@ -51,7 +51,7 @@ These settings persist in the `gn_login_api_settings` option. A compatibility sh
 - Each section summarises endpoint verification, HTTPS and CORS settings, bearer token expectations, avatar upload requirements, and cURL recipes you can run directly from the server.
 - Authentication quick hits captured on the checklist keep the mobile app and server aligned:
   - Protected endpoints expect an `Authorization: Bearer` token unless the route explicitly calls itself public.
-  - Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username, email, and password.
+- Retrieve bearer tokens from `POST /wp-json/gn/v1/login` with a valid WordPress username or email address and password.
   - Refresh expiring tokens with `POST /wp-json/gn/v1/token/refresh`; pass either the previous bearer in the `Authorization` header or a `token` request body parameter.
   - Ensure the authenticated account stays active and is not blocked by membership or capability plugins before issuing tokens.
   - When Cloudflare or another proxy sits in front of the site, verify the `Authorization` header survives to PHP unchanged.
@@ -88,7 +88,7 @@ All endpoints live under `wp-json/gn/v1`:
 
 | Route | Method | Description |
 | ----- | ------ | ----------- |
-| `/login` | POST | Authenticate via username, email, and password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption and returns both the redirect URL and API bearer token. Includes rate limiting and token locking via filters. |
+| `/login` | POST | Authenticate via username or email plus password. Always issues seven-day token hand-offs for `/wp-login.php?action=gn_token_login` redemption and returns both the redirect URL and API bearer token. Includes rate limiting and token locking via filters. |
 | `/register` | POST | Register a new user with validation for username, email, and password strength. Fires `gn_password_api_user_registered`. |
 | `/forgot-password` | POST | Start core WordPress reset workflow without leaking user existence. |
 | `/reset-password` | POST | Complete a reset using a verification code (custom or stored). |
