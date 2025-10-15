@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.97
+- Treat the username parameter on the JWT compatibility `/token` endpoint as an email when appropriate so users can authenticate with either their email address or username alongside their password.
+
 ### 0.3.96
 - Allow `/gn/v1/login` requests to authenticate with either a username or email identifier so mobile and smoke-test clients can submit whichever field they collect.
 
