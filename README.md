@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.98
+- Document the current integration gaps between the React app and plugin endpoints so front-end updates can align payloads, routes, and field names with the server contract.
+
 ### 0.3.97
 - Treat the username parameter on the JWT compatibility `/token` endpoint as an email when appropriate so users can authenticate with either their email address or username alongside their password.
 
