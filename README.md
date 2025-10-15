@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.95
+- Maintenance: Bump the plugin version for the 0.3.95 release.
+
 ### 0.3.94
 - Allow `/gn/v1/login` and `/jwt-auth/v1/token` to authenticate when only an email address is supplied by locating the matching WordPress user and validating the password against their stored hash, so clients no longer need to send both username and email to avoid 401 responses.【F:includes/Auth/PasswordLoginService.php†L318-L355】【F:includes/Auth/JwtAuthEndpoints.php†L64-L108】
 
