@@ -81,6 +81,13 @@ class JwtAuthEndpoints {
         $login_identifier = '' !== $username ? $username : $email;
 
         $user = wp_authenticate( $login_identifier, $password );
+        if ( is_wp_error( $user ) && '' !== $email ) {
+            $user_by_email = get_user_by( 'email', $email );
+            if ( $user_by_email instanceof WP_User && wp_check_password( $password, $user_by_email->user_pass, $user_by_email->ID ) ) {
+                $user = $user_by_email;
+            }
+        }
+
         if ( is_wp_error( $user ) ) {
             do_action( 'jwt_auth_failed_auth', $user, $request );
 

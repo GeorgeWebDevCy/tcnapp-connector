@@ -327,14 +327,23 @@ class PasswordLoginService {
 
         $user = wp_authenticate( $login_identifier, $password );
         if ( is_wp_error( $user ) ) {
-            $this->increment_rate_limit( $rate_context );
+            if ( '' !== $email ) {
+                $user_by_email = get_user_by( 'email', $email );
+                if ( $user_by_email instanceof WP_User && wp_check_password( $password, $user_by_email->user_pass, $user_by_email->ID ) ) {
+                    $user = $user_by_email;
+                }
+            }
 
-            return ErrorCodes::to_wp_error(
-                ErrorCodes::AUTH_WORDPRESS_CREDENTIALS,
-                __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ),
-                401,
-                array( 'legacy_code' => 'gn_invalid_credentials' )
-            );
+            if ( is_wp_error( $user ) ) {
+                $this->increment_rate_limit( $rate_context );
+
+                return ErrorCodes::to_wp_error(
+                    ErrorCodes::AUTH_WORDPRESS_CREDENTIALS,
+                    __( 'The provided username, email, or password are incorrect.', 'tcnapp-connector' ),
+                    401,
+                    array( 'legacy_code' => 'gn_invalid_credentials' )
+                );
+            }
         }
 
         if ( ! $this->credentials_match_user( $user, $username, $email ) ) {

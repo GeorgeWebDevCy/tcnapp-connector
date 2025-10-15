@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.93
+Stable tag: 0.3.94
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.94 =
+* Allow `/wp-json/gn/v1/login` and the `/jwt-auth/v1/token` compatibility route to authenticate with whichever identifier is supplied by checking the WordPress account when only an email address is provided, falling back to password verification against the matched user record.
 
 = 0.3.93 =
 * Allow `/wp-json/gn/v1/login` and the `/jwt-auth/v1/token` compatibility route to accept either a username or email alongside the password so clients can authenticate with whichever identifier they supply while keeping credential validation aligned with WordPress.
