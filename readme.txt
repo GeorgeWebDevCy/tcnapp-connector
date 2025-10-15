@@ -4,7 +4,7 @@ Tags: woocommerce, mlm, memberships, commissions, genealogy, authentication
 Requires at least: 6.0
 Tested up to: 6.5
 Requires PHP: 7.4
-Stable tag: 0.3.97
+Stable tag: 0.3.98
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -101,6 +101,9 @@ The REST endpoints stop registering, but existing options remain stored. Re-enab
 Activation seeds hidden products for the Blue, Gold, Platinum, and Black tiers (if missing) and keeps their pricing/categories synced with admin defaults. Use the **TCN Membership Level** drop-down on other products to link them to tiers manually.
 
 == Changelog ==
+
+= 0.3.98 =
+* Document the current integration gaps between the React client and plugin endpoints so front-end payloads and routing align with the server contract.
 
 = 0.3.97 =
 * Allow the JWT compatibility `/token` endpoint to treat the provided username as an email when appropriate so users can log in using either their email address or their username alongside the password.
