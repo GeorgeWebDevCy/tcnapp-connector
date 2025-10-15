@@ -304,6 +304,15 @@ class PasswordLoginService {
         $username = sanitize_text_field( $request->get_param( 'username' ) );
         $email    = sanitize_email( (string) $request->get_param( 'email' ) );
         $password = (string) $request->get_param( 'password' );
+
+        if ( '' === $email ) {
+            $username_as_email = sanitize_email( $username );
+
+            if ( '' !== $username_as_email ) {
+                $email    = $username_as_email;
+                $username = '';
+            }
+        }
         if ( empty( $password ) || ( empty( $username ) && empty( $email ) ) ) {
             return ErrorCodes::to_wp_error(
                 ErrorCodes::AUTH_LOGIN_MISSING_CREDENTIALS,
