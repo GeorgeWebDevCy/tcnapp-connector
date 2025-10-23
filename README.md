@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.99
+- Allow `/gn/v1/login` calls that send the registered email for both the username and email fields to authenticate successfully by treating matching emails as satisfying the username requirement and continuing to return the expected token payload.
+
 ### 0.3.98
 - Document the current integration gaps between the React app and plugin endpoints so front-end updates can align payloads, routes, and field names with the server contract.
 

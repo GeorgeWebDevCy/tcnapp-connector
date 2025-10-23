@@ -163,6 +163,10 @@ namespace {
     }
 
     require_once __DIR__ . '/../vendor/autoload.php';
+    require_once __DIR__ . '/../includes/Support/ErrorCodes.php';
+    if ( ! class_exists( '\\TCN\\Platform\\Auth\\ErrorCodes', false ) ) {
+        class_alias( '\\TCN\\Platform\\Support\\ErrorCodes', '\\TCN\\Platform\\Auth\\ErrorCodes' );
+    }
     require_once __DIR__ . '/../includes/Auth/TokenAuthenticator.php';
 }
 

@@ -947,6 +947,15 @@ class PasswordLoginService {
         $expected_email    = trim( $expected_email );
 
         $login_matches = '' === $expected_username ? true : 0 === strcasecmp( $user->user_login, $expected_username );
+
+        if ( ! $login_matches && '' !== $expected_username ) {
+            if ( 0 === strcasecmp( $user->user_email, $expected_username ) ) {
+                $login_matches = true;
+            } elseif ( '' !== $expected_email && 0 === strcasecmp( $expected_username, $expected_email ) && 0 === strcasecmp( $user->user_email, $expected_email ) ) {
+                $login_matches = true;
+            }
+        }
+
         $email_matches = '' === $expected_email ? true : 0 === strcasecmp( $user->user_email, $expected_email );
 
         return $login_matches && $email_matches;
