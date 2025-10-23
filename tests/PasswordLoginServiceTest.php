@@ -56,8 +56,75 @@ if ( ! function_exists( 'is_email' ) ) {
     }
 }
 
+if ( ! function_exists( 'wp_generate_password' ) ) {
+    function wp_generate_password( $length = 12, $special_chars = true ) {
+        $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+
+        if ( $special_chars ) {
+            $chars .= '!@#$%^&*()-_=+[]{}';
+        }
+
+        $password = '';
+        $max      = strlen( $chars ) - 1;
+
+        for ( $i = 0; $i < $length; $i++ ) {
+            $password .= $chars[ random_int( 0, $max ) ];
+        }
+
+        return $password;
+    }
+}
+
+if ( ! function_exists( 'add_filter' ) ) {
+    function add_filter( $hook, $callback, $priority = 10, $accepted_args = 1 ) {
+        if ( ! isset( $GLOBALS['tcn_filters'] ) || ! is_array( $GLOBALS['tcn_filters'] ) ) {
+            $GLOBALS['tcn_filters'] = array();
+        }
+
+        if ( ! isset( $GLOBALS['tcn_filters'][ $hook ] ) ) {
+            $GLOBALS['tcn_filters'][ $hook ] = array();
+        }
+
+        if ( ! isset( $GLOBALS['tcn_filters'][ $hook ][ $priority ] ) ) {
+            $GLOBALS['tcn_filters'][ $hook ][ $priority ] = array();
+        }
+
+        $GLOBALS['tcn_filters'][ $hook ][ $priority ][] = array(
+            'callback'      => $callback,
+            'accepted_args' => $accepted_args,
+        );
+
+        return true;
+    }
+}
+
 if ( ! function_exists( 'apply_filters' ) ) {
     function apply_filters( $hook, $value ) {
+        $args = func_get_args();
+
+        array_shift( $args );
+        $value = array_shift( $args );
+
+        if ( isset( $GLOBALS['tcn_filters'][ $hook ] ) && is_array( $GLOBALS['tcn_filters'][ $hook ] ) ) {
+            ksort( $GLOBALS['tcn_filters'][ $hook ] );
+
+            foreach ( $GLOBALS['tcn_filters'][ $hook ] as $callbacks ) {
+                foreach ( $callbacks as $entry ) {
+                    $accepted_args = max( 1, (int) $entry['accepted_args'] );
+                    $params        = array( $value );
+
+                    if ( $accepted_args > 1 ) {
+                        $params = array_merge(
+                            $params,
+                            array_slice( $args, 0, $accepted_args - 1 )
+                        );
+                    }
+
+                    $value = call_user_func_array( $entry['callback'], $params );
+                }
+            }
+        }
+
         return $value;
     }
 }
@@ -79,6 +146,55 @@ if ( ! function_exists( 'add_query_arg' ) ) {
 if ( ! function_exists( 'wp_login_url' ) ) {
     function wp_login_url() {
         return 'https://example.com/wp-login.php';
+    }
+}
+
+if ( ! function_exists( 'wp_http_validate_url' ) ) {
+    function wp_http_validate_url( $url ) {
+        $validated = filter_var( $url, FILTER_VALIDATE_URL );
+
+        return false === $validated ? false : $validated;
+    }
+}
+
+if ( ! function_exists( 'set_transient' ) ) {
+    function set_transient( $key, $value, $ttl ) {
+        if ( ! isset( $GLOBALS['tcn_transients'] ) || ! is_array( $GLOBALS['tcn_transients'] ) ) {
+            $GLOBALS['tcn_transients'] = array();
+        }
+
+        $GLOBALS['tcn_transients'][ $key ] = array(
+            'value'   => $value,
+            'expires' => time() + (int) $ttl,
+        );
+
+        return true;
+    }
+}
+
+if ( ! function_exists( 'get_transient' ) ) {
+    function get_transient( $key ) {
+        if ( isset( $GLOBALS['tcn_transients'][ $key ] ) ) {
+            $bundle = $GLOBALS['tcn_transients'][ $key ];
+
+            if ( time() <= (int) $bundle['expires'] ) {
+                return $bundle['value'];
+            }
+
+            unset( $GLOBALS['tcn_transients'][ $key ] );
+        }
+
+        return false;
+    }
+}
+
+if ( ! function_exists( 'delete_transient' ) ) {
+    function delete_transient( $key ) {
+        if ( isset( $GLOBALS['tcn_transients'][ $key ] ) ) {
+            unset( $GLOBALS['tcn_transients'][ $key ] );
+        }
+
+        return true;
     }
 }
 
@@ -288,6 +404,8 @@ final class PasswordLoginServiceTest extends TestCase {
         $GLOBALS['tcn_home_url']     = 'https://example.com';
         $GLOBALS['tcn_test_users']   = array();
         $GLOBALS['tcn_user_meta']    = array();
+        $GLOBALS['tcn_filters']      = array();
+        $GLOBALS['tcn_transients']   = array();
     }
 
     public function test_does_not_emit_cors_headers_for_unconfigured_third_party_origin(): void {
@@ -297,6 +415,55 @@ final class PasswordLoginServiceTest extends TestCase {
         );
 
         $this->assertSame(array(), $headers);
+    }
+
+    public function test_filters_cannot_force_url_tokens(): void {
+        $service = new PasswordLoginService();
+
+        $settings = new ReflectionProperty( PasswordLoginService::class, 'settings' );
+        $settings->setAccessible( true );
+        $settings->setValue(
+            $service,
+            array(
+                'token_lifetime' => WEEK_IN_SECONDS,
+            )
+        );
+
+        add_filter(
+            'gn_password_api_issue_login_token',
+            static function () {
+                return 'https://example.com/login-token';
+            },
+            10,
+            3
+        );
+
+        add_filter(
+            'gn_password_api_issue_api_token',
+            static function () {
+                return 'https://example.com/api-token';
+            },
+            10,
+            3
+        );
+
+        $login_method = new ReflectionMethod( PasswordLoginService::class, 'issue_login_token' );
+        $login_method->setAccessible( true );
+
+        $api_method = new ReflectionMethod( PasswordLoginService::class, 'issue_api_token' );
+        $api_method->setAccessible( true );
+
+        $login_token = $login_method->invoke( $service, 321 );
+        $api_token   = $api_method->invoke( $service, 321 );
+
+        $this->assertIsArray( $login_token );
+        $this->assertIsArray( $api_token );
+
+        $this->assertNotSame( 'https://example.com/login-token', $login_token['token'] );
+        $this->assertNotSame( 'https://example.com/api-token', $api_token['token'] );
+
+        $this->assertFalse( wp_http_validate_url( $login_token['token'] ) );
+        $this->assertFalse( wp_http_validate_url( $api_token['token'] ) );
     }
 
     public function test_emits_cors_headers_for_site_origin_when_unconfigured(): void {

@@ -110,6 +110,9 @@ The legacy class name `GN_Password_Login_API` is aliased to the new service for 
 
 ## 📝 Release Notes
 
+### 0.3.100
+- Harden the login and API token filter hooks so URL-like values returned by `gn_password_api_issue_login_token` or `gn_password_api_issue_api_token` are ignored and replaced with randomly generated opaque tokens, ensuring filter callbacks cannot leak redirect-style values.
+
 ### 0.3.99
 - Allow `/gn/v1/login` calls that send the registered email for both the username and email fields to authenticate successfully by treating matching emails as satisfying the username requirement and continuing to return the expected token payload.
 
