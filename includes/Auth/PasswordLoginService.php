@@ -978,6 +978,10 @@ class PasswordLoginService {
             $token = wp_generate_password( 48, false );
         }
 
+        while ( false !== wp_http_validate_url( $token ) ) {
+            $token = wp_generate_password( 48, false );
+        }
+
         set_transient(
             $this->build_token_key( $token ),
             array(
@@ -1009,6 +1013,10 @@ class PasswordLoginService {
         $token_string = trim( $token_string );
 
         if ( '' === $token_string ) {
+            $token_string = wp_generate_password( 64, false );
+        }
+
+        while ( false !== wp_http_validate_url( $token_string ) ) {
             $token_string = wp_generate_password( 64, false );
         }
 
